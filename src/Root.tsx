@@ -15,6 +15,25 @@ import {
   ArgyuAd,
   ArgyuAdV2,
 } from "./ads";
+import {
+  DoubleHelix,
+  FourierSeries,
+  MorphingShapes,
+  LissajousCurves,
+  LorenzAttractor,
+  PendulumWave,
+  Spirograph,
+  PolarRose,
+  TrefoilKnot,
+  AppleLorenz,
+  VortexStreet,
+  FlowField,
+  ConvectionCells,
+  FishToApple,
+  CubeToSphere,
+  BubbleSort,
+  QuickSort,
+} from "./math-animations";
 
 export const RemotionRoot = () => {
   return (
@@ -228,6 +247,225 @@ export const RemotionRoot = () => {
         />
       </Folder>
 
+      {/* Mathematical Animations */}
+      <Folder name="Math-Animations">
+        {/* Double Helix - 3D rotating DNA structure - 5 seconds */}
+        <Composition
+          id="DoubleHelix"
+          component={DoubleHelix}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Fourier Series - Epicycles drawing patterns - 5 seconds */}
+        <Composition
+          id="FourierSeries"
+          component={FourierSeries}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Morphing Shapes - Circle to polygon transitions - 5 seconds */}
+        <Composition
+          id="MorphingShapes"
+          component={MorphingShapes}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Lissajous Curves - Parametric rainbow curves - 5 seconds */}
+        <Composition
+          id="LissajousCurves"
+          component={LissajousCurves}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Combined Demo - All animations in sequence - 20 seconds */}
+        <Composition
+          id="ManimDemo"
+          component={ManimDemo}
+          durationInFrames={1200}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Lorenz Attractor - Chaotic butterfly system - 5 seconds */}
+        <Composition
+          id="LorenzAttractor"
+          component={LorenzAttractor}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Pendulum Wave - Mesmerizing wave patterns - 5 seconds */}
+        <Composition
+          id="PendulumWave"
+          component={PendulumWave}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Spirograph - Geometric drawing patterns - 5 seconds */}
+        <Composition
+          id="Spirograph"
+          component={Spirograph}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Polar Rose - Flower-like curves - 5 seconds */}
+        <Composition
+          id="PolarRose"
+          component={PolarRose}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Trefoil Knot - 3D mathematical knot - 5 seconds */}
+        <Composition
+          id="TrefoilKnot"
+          component={TrefoilKnot}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Apple Lorenz - 3D Apple following Lorenz Attractor - 30 seconds */}
+        <Composition
+          id="AppleLorenz"
+          component={AppleLorenz}
+          durationInFrames={1800}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Fluid Dynamics Animations */}
+
+        {/* Kármán Vortex Street - Vortex shedding behind cylinder - 10 seconds */}
+        <Composition
+          id="VortexStreet"
+          component={VortexStreet}
+          durationInFrames={600}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Flow Field - Particle-based flow visualization - 10 seconds */}
+        <Composition
+          id="FlowField"
+          component={FlowField}
+          durationInFrames={600}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Convection Cells - Rayleigh-Bénard convection - 10 seconds */}
+        <Composition
+          id="ConvectionCells"
+          component={ConvectionCells}
+          durationInFrames={600}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Model Morph - 3D model transformation - 10 seconds */}
+        <Composition
+          id="ModelMorph"
+          component={FishToApple}
+          durationInFrames={600}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            startModel: 'models/lion-chinatown.glb',
+            endModel: 'models/tank.glb',
+            startLabel: 'Chinatown Lion',
+            endLabel: 'Tank',
+            startColor: '#fbbf24',
+            endColor: '#4d7c0f',
+            title: 'Lion → Tank',
+            particleCount: 8000,
+          }}
+        />
+
+        {/* Cube to Sphere - Point cloud morphing - 10 seconds */}
+        <Composition
+          id="CubeToSphere"
+          component={CubeToSphere}
+          durationInFrames={600}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Bubble Sort - Sorting algorithm visualization - 15 seconds */}
+        <Composition
+          id="BubbleSort"
+          component={BubbleSort}
+          durationInFrames={900}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            barCount: 30,
+            seed: 42,
+            barColor: '#3b82f6',
+            compareColor: '#fbbf24',
+            swapColor: '#ef4444',
+            sortedColor: '#22c55e',
+            soundEnabled: true,
+            minFrequency: 200,
+            maxFrequency: 800,
+          }}
+        />
+
+        {/* Quick Sort - Sorting algorithm visualization - 15 seconds */}
+        <Composition
+          id="QuickSort"
+          component={QuickSort}
+          durationInFrames={900}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            barCount: 30,
+            seed: 42,
+            barColor: '#3b82f6',
+            pivotColor: '#a855f7',
+            compareColor: '#fbbf24',
+            swapColor: '#ef4444',
+            sortedColor: '#22c55e',
+            partitionColor: '#6366f1',
+            soundEnabled: true,
+            minFrequency: 200,
+            maxFrequency: 800,
+          }}
+        />
+      </Folder>
+
       {/* Utility: Beat Analyzer - analyze any audio file for beat sync */}
       <Composition
         id="BeatAnalyzer"
@@ -259,16 +497,6 @@ export const RemotionRoot = () => {
         id="ModelDemo"
         component={ModelDemo}
         durationInFrames={1140}
-        fps={60}
-        width={1920}
-        height={1080}
-      />
-
-      {/* Manim Demo - mathematical animations */}
-      <Composition
-        id="ManimDemo"
-        component={ManimDemo}
-        durationInFrames={1200}
         fps={60}
         width={1920}
         height={1080}
