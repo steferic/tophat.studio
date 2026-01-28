@@ -45,3 +45,9 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Large media assets (use Git LFS or download separately)
+public/models/
+public/audio/
+public/videos/
+public/screenshots/

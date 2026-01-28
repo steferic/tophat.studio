@@ -1,6 +1,6 @@
 /**
  * Flow Field
- * Particles moving through a vector field with curl noise
+ * Smooth particle flow using Perlin-like noise
  */
 
 import React, { useMemo } from 'react';
@@ -8,158 +8,211 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remo
 
 export interface FlowFieldProps {
   startFrame?: number;
+  /** Number of particles */
+  particleCount?: number;
+  /** Trail length */
+  trailLength?: number;
+  /** Flow speed */
+  speed?: number;
 }
 
-// Simple noise function for flow field
-const noise2D = (x: number, y: number, seed: number = 0): number => {
-  const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
-  return n - Math.floor(n);
+// Permutation table for Perlin noise
+const permutation = [
+  151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,
+  8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,
+  35,11,32,57,177,33,88,237,149,56,87,174,20,125,136,171,168,68,175,74,165,71,
+  134,139,48,27,166,77,146,158,231,83,111,229,122,60,211,133,230,220,105,92,41,
+  55,46,245,40,244,102,143,54,65,25,63,161,1,216,80,73,209,76,132,187,208,89,
+  18,169,200,196,135,130,116,188,159,86,164,100,109,198,173,186,3,64,52,217,226,
+  250,124,123,5,202,38,147,118,126,255,82,85,212,207,206,59,227,47,16,58,17,182,
+  189,28,42,223,183,170,213,119,248,152,2,44,154,163,70,221,153,101,155,167,43,
+  172,9,129,22,39,253,19,98,108,110,79,113,224,232,178,185,112,104,218,246,97,
+  228,251,34,242,193,238,210,144,12,191,179,162,241,81,51,145,235,249,14,239,
+  107,49,192,214,31,181,199,106,157,184,84,204,176,115,121,50,45,127,4,150,254,
+  138,236,205,93,222,114,67,29,24,72,243,141,128,195,78,66,215,61,156,180
+];
+
+// Double the permutation table
+const p = [...permutation, ...permutation];
+
+// Fade function for smooth interpolation
+const fade = (t: number): number => t * t * t * (t * (t * 6 - 15) + 10);
+
+// Linear interpolation
+const lerp = (a: number, b: number, t: number): number => a + t * (b - a);
+
+// Gradient function
+const grad = (hash: number, x: number, y: number): number => {
+  const h = hash & 7;
+  const u = h < 4 ? x : y;
+  const v = h < 4 ? y : x;
+  return ((h & 1) ? -u : u) + ((h & 2) ? -2 * v : 2 * v);
 };
 
-// Curl noise for divergence-free flow
-const curlNoise = (x: number, y: number, time: number, scale: number = 0.003): { vx: number; vy: number } => {
-  const eps = 0.0001;
+// 2D Perlin noise
+const perlin2D = (x: number, y: number): number => {
+  // Find unit grid cell
+  const X = Math.floor(x) & 255;
+  const Y = Math.floor(y) & 255;
 
-  // Sample noise at nearby points
-  const n1 = noise2D(x * scale, (y + eps) * scale, time);
-  const n2 = noise2D(x * scale, (y - eps) * scale, time);
-  const n3 = noise2D((x + eps) * scale, y * scale, time);
-  const n4 = noise2D((x - eps) * scale, y * scale, time);
+  // Relative position in cell
+  const xf = x - Math.floor(x);
+  const yf = y - Math.floor(y);
 
-  // Curl = (dN/dy, -dN/dx)
-  const vx = (n1 - n2) / (2 * eps) * 50;
-  const vy = -(n3 - n4) / (2 * eps) * 50;
+  // Fade curves
+  const u = fade(xf);
+  const v = fade(yf);
 
-  return { vx, vy };
+  // Hash coordinates of corners
+  const aa = p[p[X] + Y];
+  const ab = p[p[X] + Y + 1];
+  const ba = p[p[X + 1] + Y];
+  const bb = p[p[X + 1] + Y + 1];
+
+  // Blend results from corners
+  const x1 = lerp(grad(aa, xf, yf), grad(ba, xf - 1, yf), u);
+  const x2 = lerp(grad(ab, xf, yf - 1), grad(bb, xf - 1, yf - 1), u);
+
+  return lerp(x1, x2, v);
+};
+
+// Flow field angle from noise
+const getFlowAngle = (x: number, y: number, time: number, scale: number = 0.003): number => {
+  const noise = perlin2D(x * scale + time * 0.2, y * scale);
+  return noise * Math.PI * 2;
 };
 
 interface Particle {
-  id: number;
+  x: number;
+  y: number;
   trail: { x: number; y: number }[];
 }
 
-export const FlowField: React.FC<FlowFieldProps> = ({ startFrame = 0 }) => {
+// Simulate a single particle forward in time
+const simulateParticle = (
+  startX: number,
+  startY: number,
+  numSteps: number,
+  time: number,
+  width: number,
+  height: number,
+  speed: number,
+  scale: number
+): { x: number; y: number }[] => {
+  const trail: { x: number; y: number }[] = [];
+  let x = startX;
+  let y = startY;
+
+  for (let i = 0; i < numSteps; i++) {
+    trail.push({ x, y });
+
+    const angle = getFlowAngle(x, y, time, scale);
+    x += Math.cos(angle) * speed;
+    y += Math.sin(angle) * speed;
+
+    // Wrap around edges
+    if (x < 0) x += width;
+    if (x > width) x -= width;
+    if (y < 0) y += height;
+    if (y > height) y -= height;
+  }
+
+  return trail;
+};
+
+export const FlowField: React.FC<FlowFieldProps> = ({
+  startFrame = 0,
+  particleCount = 300,
+  trailLength = 50,
+  speed = 2,
+}) => {
   const globalFrame = useCurrentFrame();
   const frame = globalFrame - startFrame;
   const { width, height, fps } = useVideoConfig();
   const time = frame / fps;
 
-  const numParticles = 200;
-  const trailLength = 30;
+  const noiseScale = 0.004;
 
-  // Simulate particles through the flow field
+  // Initialize particle starting positions (deterministic based on ID)
+  const particleStarts = useMemo(() => {
+    const starts: { x: number; y: number }[] = [];
+    for (let i = 0; i < particleCount; i++) {
+      // Use golden ratio for even distribution
+      const golden = 1.618033988749895;
+      const x = ((i * golden * 137.5) % width);
+      const y = ((i * golden * 251.3) % height);
+      starts.push({ x, y });
+    }
+    return starts;
+  }, [particleCount, width, height]);
+
+  // Simulate all particles
   const particles = useMemo(() => {
-    const result: Particle[] = [];
+    return particleStarts.map((start, i) => {
+      // Offset starting position by time to create continuous flow
+      const offsetX = start.x + time * 30;
+      const offsetY = start.y + time * 10;
 
-    for (let i = 0; i < numParticles; i++) {
-      // Deterministic starting position based on particle ID
-      const startX = ((i * 97) % width);
-      const startY = ((i * 131) % height);
+      // Wrap the offset
+      const wrappedX = ((offsetX % width) + width) % width;
+      const wrappedY = ((offsetY % height) + height) % height;
 
-      const trail: { x: number; y: number }[] = [];
-      let x = startX;
-      let y = startY;
+      const trail = simulateParticle(
+        wrappedX,
+        wrappedY,
+        trailLength,
+        time,
+        width,
+        height,
+        speed,
+        noiseScale
+      );
 
-      // Simulate backwards in time to get trail
-      const dt = 0.05;
-      const currentTime = time * 0.3; // Slow down time evolution
-
-      for (let t = 0; t < trailLength; t++) {
-        const simTime = currentTime - t * dt;
-        const { vx, vy } = curlNoise(x, y, simTime);
-
-        trail.unshift({ x, y });
-
-        // Move backwards
-        x -= vx * dt * 60;
-        y -= vy * dt * 60;
-
-        // Wrap around
-        if (x < 0) x += width;
-        if (x > width) x -= width;
-        if (y < 0) y += height;
-        if (y > height) y -= height;
-      }
-
-      result.push({ id: i, trail });
-    }
-
-    return result;
-  }, [time, width, height, numParticles, trailLength]);
-
-  // Vector field arrows (sparse grid)
-  const arrows = useMemo(() => {
-    const result: { x: number; y: number; angle: number; magnitude: number }[] = [];
-    const gridSize = 80;
-
-    for (let x = gridSize / 2; x < width; x += gridSize) {
-      for (let y = gridSize / 2; y < height; y += gridSize) {
-        const { vx, vy } = curlNoise(x, y, time * 0.3);
-        const angle = Math.atan2(vy, vx);
-        const magnitude = Math.sqrt(vx * vx + vy * vy);
-
-        result.push({ x, y, angle, magnitude });
-      }
-    }
-
-    return result;
-  }, [time, width, height]);
+      return { id: i, trail };
+    });
+  }, [particleStarts, time, trailLength, width, height, speed, noiseScale]);
 
   const titleOpacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
-  const arrowOpacity = interpolate(frame, [0, 60], [0, 0.3], { extrapolateRight: 'clamp' });
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#0f172a' }}>
+    <AbsoluteFill style={{ backgroundColor: '#0a0a1a' }}>
       <svg width={width} height={height}>
-        <defs>
-          <linearGradient id="flow-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#06b6d4" stopOpacity="0" />
-            <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#22d3ee" stopOpacity="1" />
-          </linearGradient>
-        </defs>
-
-        {/* Vector field arrows */}
-        {arrows.map((arrow, i) => {
-          const length = Math.min(arrow.magnitude * 2, 25);
-          return (
-            <g
-              key={i}
-              transform={`translate(${arrow.x}, ${arrow.y}) rotate(${(arrow.angle * 180) / Math.PI})`}
-              opacity={arrowOpacity}
-            >
-              <line x1={-length / 2} y1={0} x2={length / 2} y2={0} stroke="#475569" strokeWidth={1} />
-              <polygon points={`${length / 2},0 ${length / 2 - 5},-3 ${length / 2 - 5},3`} fill="#475569" />
-            </g>
-          );
-        })}
-
         {/* Particle trails */}
         {particles.map((particle) => {
           if (particle.trail.length < 2) return null;
 
-          const pathD = particle.trail
-            .map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`))
-            .join(' ');
+          // Create smooth path using quadratic curves
+          let pathD = `M ${particle.trail[0].x} ${particle.trail[0].y}`;
+          for (let i = 1; i < particle.trail.length - 1; i++) {
+            const curr = particle.trail[i];
+            const next = particle.trail[i + 1];
+            const midX = (curr.x + next.x) / 2;
+            const midY = (curr.y + next.y) / 2;
+            pathD += ` Q ${curr.x} ${curr.y} ${midX} ${midY}`;
+          }
+          // Final segment
+          const last = particle.trail[particle.trail.length - 1];
+          pathD += ` L ${last.x} ${last.y}`;
 
-          // Color based on particle ID for variety
-          const hue = (particle.id * 37) % 60 + 170; // Cyan to blue range
+          // Color based on particle position for subtle variation
+          const hue = 190 + (particle.id % 40); // Cyan to blue range
 
           return (
             <g key={particle.id}>
+              {/* Trail with gradient opacity */}
               <path
                 d={pathD}
                 fill="none"
-                stroke={`hsl(${hue}, 80%, 60%)`}
-                strokeWidth={2}
+                stroke={`hsl(${hue}, 70%, 55%)`}
+                strokeWidth={1.5}
                 strokeLinecap="round"
-                opacity={0.6}
+                strokeOpacity={0.6}
               />
-              {/* Head of particle */}
+              {/* Bright head */}
               <circle
-                cx={particle.trail[particle.trail.length - 1].x}
-                cy={particle.trail[particle.trail.length - 1].y}
-                r={3}
+                cx={last.x}
+                cy={last.y}
+                r={2}
                 fill={`hsl(${hue}, 80%, 70%)`}
               />
             </g>
@@ -169,10 +222,10 @@ export const FlowField: React.FC<FlowFieldProps> = ({ startFrame = 0 }) => {
         {/* Title */}
         <text
           x={width / 2}
-          y={80}
+          y={70}
           textAnchor="middle"
           fill="#f8fafc"
-          fontSize={48}
+          fontSize={56}
           fontFamily="system-ui"
           fontWeight="bold"
           opacity={titleOpacity}
@@ -180,16 +233,17 @@ export const FlowField: React.FC<FlowFieldProps> = ({ startFrame = 0 }) => {
           Flow Field
         </text>
 
-        {/* Info */}
+        {/* Subtitle */}
         <text
           x={width / 2}
-          y={height - 60}
+          y={110}
           textAnchor="middle"
           fill="#94a3b8"
-          fontSize={20}
-          fontFamily="monospace"
+          fontSize={24}
+          fontFamily="system-ui"
+          opacity={titleOpacity}
         >
-          Particles following curl noise · Divergence-free velocity field
+          Perlin Noise Vector Field
         </text>
       </svg>
     </AbsoluteFill>

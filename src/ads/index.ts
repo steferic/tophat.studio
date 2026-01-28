@@ -7,3 +7,4 @@ export * from './CorporateEnterprise';
 export * from './ProductDemo';
 export * from './ArgyuAd';
 export * from './ArgyuAdV2';
+export * from './ArgyuAdV3';

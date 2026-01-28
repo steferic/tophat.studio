@@ -16,3 +16,6 @@ export {
   OrbitingModel,
   preloadModel,
 } from './Model';
+
+// Camera system
+export * from './camera';

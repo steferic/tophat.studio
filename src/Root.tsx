@@ -4,6 +4,8 @@ import { BeatAnalyzer } from "./BeatAnalyzer";
 import { TransitionDemo } from "./TransitionDemo";
 import { ModelDemo } from "./ModelDemo";
 import { ManimDemo } from "./ManimDemo";
+import { ScenePlayer } from "./player";
+import { createDefaultScene } from "./types/scene";
 import {
   ProductLaunch,
   SaaSPlatform,
@@ -14,6 +16,7 @@ import {
   ProductDemo,
   ArgyuAd,
   ArgyuAdV2,
+  ArgyuAdV3,
 } from "./ads";
 import {
   DoubleHelix,
@@ -33,6 +36,10 @@ import {
   CubeToSphere,
   BubbleSort,
   QuickSort,
+  MandelbrotZoom,
+  DoublePendulum,
+  NeuralNetwork,
+  VectorComponents,
 } from "./math-animations";
 
 export const RemotionRoot = () => {
@@ -241,6 +248,16 @@ export const RemotionRoot = () => {
           id="ArgyuAdV2"
           component={ArgyuAdV2}
           durationInFrames={900}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Ad 10: Argyu V3 - Classical Edition with Ravel - 25 seconds */}
+        <Composition
+          id="ArgyuAdV3"
+          component={ArgyuAdV3}
+          durationInFrames={1500}
           fps={60}
           width={1920}
           height={1080}
@@ -464,6 +481,77 @@ export const RemotionRoot = () => {
             maxFrequency: 800,
           }}
         />
+
+        {/* Mandelbrot Set - Fractal zoom animation - 20 seconds */}
+        <Composition
+          id="MandelbrotZoom"
+          component={MandelbrotZoom}
+          durationInFrames={1200}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            targetX: -0.743643887037151,
+            targetY: 0.131825904205330,
+            maxIterations: 200,
+            colorPalette: 'classic',
+          }}
+        />
+
+        {/* Double Pendulum - Chaos theory demonstration - 30 seconds */}
+        <Composition
+          id="DoublePendulum"
+          component={DoublePendulum}
+          durationInFrames={1800}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            length1: 200,
+            length2: 200,
+            mass1: 20,
+            mass2: 20,
+            initialAngle1: 120,
+            initialAngle2: 120,
+            gravity: 9.81,
+            showTrail: true,
+            trailLength: 500,
+            color1: '#3b82f6',
+            color2: '#ef4444',
+            showChaosComparison: true,
+          }}
+        />
+
+        {/* Neural Network - Forward propagation visualization - 20 seconds */}
+        <Composition
+          id="NeuralNetwork"
+          component={NeuralNetwork}
+          durationInFrames={1200}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            layers: [4, 6, 6, 3],
+            showWeights: true,
+            speed: 1,
+          }}
+        />
+
+        {/* Vector Components - x,y decomposition of rotating vector - 10 seconds */}
+        <Composition
+          id="VectorComponents"
+          component={VectorComponents}
+          durationInFrames={600}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            radius: 2,
+            rotationsPerCycle: 2,
+            xColor: '#3b82f6',
+            yColor: '#22c55e',
+          }}
+        />
       </Folder>
 
       {/* Utility: Beat Analyzer - analyze any audio file for beat sync */}
@@ -501,6 +589,23 @@ export const RemotionRoot = () => {
         width={1920}
         height={1080}
       />
+
+      {/* Scene Player - Loads and plays exported scene JSON files */}
+      <Folder name="Scene-Player">
+        {/* Default empty scene for testing */}
+        <Composition
+          id="ScenePlayerDemo"
+          component={ScenePlayer}
+          durationInFrames={300}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            scene: createDefaultScene("Demo Scene"),
+            debug: true,
+          }}
+        />
+      </Folder>
     </>
   );
 };

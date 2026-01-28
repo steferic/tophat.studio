@@ -10,7 +10,7 @@ import { AbsoluteFill, useCurrentFrame, useVideoConfig, Audio, Sequence } from '
  * Generate a sine wave tone as a base64 WAV data URL
  * Uses full Hann window envelope for completely click-free playback
  */
-const generateTone = (frequency: number, duration: number = 0.12, volume: number = 0.12): string => {
+const generateTone = (frequency: number, duration: number = 0.05, volume: number = 0.15): string => {
   const sampleRate = 44100;
   // Add silence padding at end to prevent any cutoff artifacts
   const toneSamples = Math.floor(sampleRate * duration);
@@ -243,7 +243,7 @@ export const BubbleSort: React.FC<BubbleSortProps> = ({
   // Limit to one sound at a time with minimum gap between sounds
   const audioEvents = useMemo(() => {
     const events: AudioEvent[] = [];
-    const minFrameGap = Math.ceil(fps * 0.15); // At least 150ms between sounds (no overlap)
+    const minFrameGap = Math.ceil(fps * 0.04); // At least 40ms between sounds for frequent tones
     let lastEventFrame = -minFrameGap;
 
     // Sorting phase sounds
@@ -288,7 +288,7 @@ export const BubbleSort: React.FC<BubbleSortProps> = ({
     const toneMap: Record<number, string> = {};
     for (let i = 1; i <= barCount; i++) {
       const frequency = minFrequency + ((i - 1) / (barCount - 1)) * (maxFrequency - minFrequency);
-      toneMap[i] = generateTone(frequency, 0.12, 0.12);
+      toneMap[i] = generateTone(frequency, 0.05, 0.15);
     }
     return toneMap;
   }, [barCount, minFrequency, maxFrequency]);
@@ -361,7 +361,7 @@ export const BubbleSort: React.FC<BubbleSortProps> = ({
     <AbsoluteFill style={{ backgroundColor: '#0f172a' }}>
       {/* Audio tones for comparisons/swaps */}
       {soundEnabled && deduplicatedAudioEvents.map((event, index) => (
-        <Sequence key={`tone-${index}`} from={event.frame} durationInFrames={Math.ceil(fps * 0.2)}>
+        <Sequence key={`tone-${index}`} from={event.frame} durationInFrames={Math.ceil(fps * 0.08)}>
           <Audio
             src={tones[event.value]}
             volume={1}

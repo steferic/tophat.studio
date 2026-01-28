@@ -60,3 +60,18 @@ export type { BubbleSortProps } from './BubbleSort';
 
 export { QuickSort } from './QuickSort';
 export type { QuickSortProps } from './QuickSort';
+
+// Fractals and chaos
+export { MandelbrotZoom, MandelbrotPlane } from './MandelbrotZoom';
+export type { MandelbrotZoomProps } from './MandelbrotZoom';
+
+export { DoublePendulum } from './DoublePendulum';
+export type { DoublePendulumProps } from './DoublePendulum';
+
+// Machine learning visualizations
+export { NeuralNetwork } from './NeuralNetwork';
+export type { NeuralNetworkProps } from './NeuralNetwork';
+
+// Vector math visualizations
+export { VectorComponents } from './VectorComponents';
+export type { VectorComponentsProps } from './VectorComponents';
