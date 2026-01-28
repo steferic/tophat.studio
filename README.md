@@ -20,13 +20,18 @@ A programmatic video creation studio built with [Remotion](https://remotion.dev)
 ### Installation
 
 ```bash
-# Clone the repository
+# Clone the repository (includes Git LFS for media assets)
 git clone https://github.com/steferic/tophat.studio.git
 cd tophat.studio
+
+# If media files didn't download automatically, pull them with:
+git lfs pull
 
 # Install dependencies
 npm install
 ```
+
+> **Note**: This repo uses [Git LFS](https://git-lfs.github.com/) for large media files (3D models, audio, video). Make sure Git LFS is installed on your system.
 
 ### Development
 
@@ -123,6 +128,25 @@ npx remotion render ProductLaunch out/my-product.mp4 --props='{"productName":"My
 - **[Three.js](https://threejs.org)** - 3D graphics
 - **TypeScript** - Type safety
 - **Vite** - Fast development builds
+
+## Included Assets
+
+The repo includes media assets via Git LFS (~300MB):
+
+**3D Models** (`public/models/`)
+- apple.glb, rose.glb, rock.glb
+- iss.glb (International Space Station)
+- tank.glb, lion-chinatown.glb, zoltar.glb
+- And more...
+
+**Audio** (`public/audio/`)
+- argyu-beat.mp3
+- ravel-string-quartet.mp3
+
+**Videos** (`public/videos/`)
+- flower-abstract.mp4
+- bee-portrait.mp4
+- psychedelic-liquid.mp4
 
 ## Rendering Tips
 
