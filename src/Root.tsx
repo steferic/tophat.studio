@@ -40,6 +40,8 @@ import {
   DoublePendulum,
   NeuralNetwork,
   VectorComponents,
+  HairyBall,
+  ThreeBody,
 } from "./math-animations";
 
 export const RemotionRoot = () => {
@@ -550,6 +552,37 @@ export const RemotionRoot = () => {
             rotationsPerCycle: 2,
             xColor: '#3b82f6',
             yColor: '#22c55e',
+          }}
+        />
+
+        {/* Hairy Ball Theorem - Tangent vector field on sphere - 15 seconds */}
+        <Composition
+          id="HairyBall"
+          component={HairyBall}
+          durationInFrames={900}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            hairCount: 2000,
+            sphereRadius: 5,
+            hairLength: 1.5,
+          }}
+        />
+
+        {/* Three-Body Problem - Gravitational chaos - 60 seconds */}
+        <Composition
+          id="ThreeBody"
+          component={ThreeBody}
+          durationInFrames={3600}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            trailLength: 100,
+            perturbation: 0.08,
+            gravitationalConstant: 1,
+            simulationSpeed: 3,
           }}
         />
       </Folder>

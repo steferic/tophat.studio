@@ -1,0 +1,47 @@
+[
+  {
+    "text": "Three bodies, equal mass, set on a perfect figure-eight orbit.",
+    "startTime": 0,
+    "endTime": 4.145
+  },
+  {
+    "text": "This is the Chenciner–Montgomery solution —",
+    "startTime": 4.586,
+    "endTime": 6.861
+  },
+  {
+    "text": "one of the few exact answers to the infamous three-body problem.",
+    "startTime": 7.187,
+    "endTime": 10.751
+  },
+  {
+    "text": "But perfection is fragile.",
+    "startTime": 11.262,
+    "endTime": 12.98
+  },
+  {
+    "text": "A tiny nudge, and the symmetry shatters.",
+    "startTime": 13.154,
+    "endTime": 15.731
+  },
+  {
+    "text": "Newtonian gravity takes over, and chaos unfolds.",
+    "startTime": 16.242,
+    "endTime": 19.656
+  },
+  {
+    "text": "No closed-form solution exists.",
+    "startTime": 20.259,
+    "endTime": 22.488
+  },
+  {
+    "text": "Each body pulls the others in an unpredictable dance —",
+    "startTime": 22.93,
+    "endTime": 25.855
+  },
+  {
+    "text": "beautiful, but fundamentally unsolvable.",
+    "startTime": 26.099,
+    "endTime": 28.746
+  }
+]

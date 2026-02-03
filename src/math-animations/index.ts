@@ -75,3 +75,11 @@ export type { NeuralNetworkProps } from './NeuralNetwork';
 // Vector math visualizations
 export { VectorComponents } from './VectorComponents';
 export type { VectorComponentsProps } from './VectorComponents';
+
+// Topology visualizations
+export { HairyBall } from './HairyBall';
+export type { HairyBallProps } from './HairyBall';
+
+// Gravitational dynamics
+export { ThreeBody } from './ThreeBody';
+export type { ThreeBodyProps } from './ThreeBody';
