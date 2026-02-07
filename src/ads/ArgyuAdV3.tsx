@@ -946,7 +946,7 @@ export const ArgyuAdV3: React.FC = () => {
       {/* Audio - Ravel String Quartet (skip 4 sec silence = 240 frames @ 60fps) */}
       <Sequence from={0} durationInFrames={1500}>
         <Audio
-          src={staticFile('audio/ravel-string-quartet.mp3')}
+          src={staticFile('audio/music/ravel-string-quartet.mp3')}
           volume={0.75}
           startFrom={240}
         />

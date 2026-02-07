@@ -1,0 +1,408 @@
+[
+  {
+    "text": "Imagine trying to comb a Filet-O-Fish so every hair lies flat.",
+    "startTime": 0,
+    "endTime": 3.831,
+    "words": [
+      {
+        "word": "Imagine",
+        "startTime": 0,
+        "endTime": 0.441
+      },
+      {
+        "word": "trying",
+        "startTime": 0.476,
+        "endTime": 0.697
+      },
+      {
+        "word": "to",
+        "startTime": 0.743,
+        "endTime": 0.789
+      },
+      {
+        "word": "comb",
+        "startTime": 0.871,
+        "endTime": 1.161
+      },
+      {
+        "word": "a",
+        "startTime": 1.207,
+        "endTime": 1.231
+      },
+      {
+        "word": "Filet-O-Fish",
+        "startTime": 1.289,
+        "endTime": 2.101
+      },
+      {
+        "word": "so",
+        "startTime": 2.276,
+        "endTime": 2.415
+      },
+      {
+        "word": "every",
+        "startTime": 2.496,
+        "endTime": 2.74
+      },
+      {
+        "word": "hair",
+        "startTime": 2.798,
+        "endTime": 2.984
+      },
+      {
+        "word": "lies",
+        "startTime": 3.042,
+        "endTime": 3.262
+      },
+      {
+        "word": "flat.",
+        "startTime": 3.32,
+        "endTime": 3.831
+      }
+    ]
+  },
+  {
+    "text": "No matter how hard you try, there will always be at least one spot where the hair sticks straight up —",
+    "startTime": 4.528,
+    "endTime": 9.718,
+    "words": [
+      {
+        "word": "No",
+        "startTime": 4.528,
+        "endTime": 4.644
+      },
+      {
+        "word": "matter",
+        "startTime": 4.69,
+        "endTime": 4.911
+      },
+      {
+        "word": "how",
+        "startTime": 4.969,
+        "endTime": 5.097
+      },
+      {
+        "word": "hard",
+        "startTime": 5.166,
+        "endTime": 5.364
+      },
+      {
+        "word": "you",
+        "startTime": 5.41,
+        "endTime": 5.492
+      },
+      {
+        "word": "try,",
+        "startTime": 5.55,
+        "endTime": 5.968
+      },
+      {
+        "word": "there",
+        "startTime": 6.014,
+        "endTime": 6.153
+      },
+      {
+        "word": "will",
+        "startTime": 6.177,
+        "endTime": 6.293
+      },
+      {
+        "word": "always",
+        "startTime": 6.339,
+        "endTime": 6.606
+      },
+      {
+        "word": "be",
+        "startTime": 6.653,
+        "endTime": 6.757
+      },
+      {
+        "word": "at",
+        "startTime": 6.803,
+        "endTime": 6.861
+      },
+      {
+        "word": "least",
+        "startTime": 6.908,
+        "endTime": 7.105
+      },
+      {
+        "word": "one",
+        "startTime": 7.175,
+        "endTime": 7.396
+      },
+      {
+        "word": "spot",
+        "startTime": 7.43,
+        "endTime": 7.744
+      },
+      {
+        "word": "where",
+        "startTime": 7.79,
+        "endTime": 7.953
+      },
+      {
+        "word": "the",
+        "startTime": 7.988,
+        "endTime": 8.057
+      },
+      {
+        "word": "hair",
+        "startTime": 8.127,
+        "endTime": 8.336
+      },
+      {
+        "word": "sticks",
+        "startTime": 8.406,
+        "endTime": 8.719
+      },
+      {
+        "word": "straight",
+        "startTime": 8.754,
+        "endTime": 9.067
+      },
+      {
+        "word": "up",
+        "startTime": 9.125,
+        "endTime": 9.311
+      },
+      {
+        "word": "—",
+        "startTime": 9.555,
+        "endTime": 9.718
+      }
+    ]
+  },
+  {
+    "text": "a cowlick.",
+    "startTime": 9.776,
+    "endTime": 10.553,
+    "words": [
+      {
+        "word": "a",
+        "startTime": 9.776,
+        "endTime": 9.834
+      },
+      {
+        "word": "cowlick.",
+        "startTime": 9.915,
+        "endTime": 10.553
+      }
+    ]
+  },
+  {
+    "text": "This is the hairy ball theorem.",
+    "startTime": 10.995,
+    "endTime": 12.701,
+    "words": [
+      {
+        "word": "This",
+        "startTime": 10.995,
+        "endTime": 11.227
+      },
+      {
+        "word": "is",
+        "startTime": 11.285,
+        "endTime": 11.366
+      },
+      {
+        "word": "the",
+        "startTime": 11.413,
+        "endTime": 11.482
+      },
+      {
+        "word": "hairy",
+        "startTime": 11.54,
+        "endTime": 11.807
+      },
+      {
+        "word": "ball",
+        "startTime": 11.865,
+        "endTime": 12.086
+      },
+      {
+        "word": "theorem.",
+        "startTime": 12.144,
+        "endTime": 12.701
+      }
+    ]
+  },
+  {
+    "text": "It applies to any closed surface: spheres, sandwiches, even fish fillets.",
+    "startTime": 13.514,
+    "endTime": 18.367,
+    "words": [
+      {
+        "word": "It",
+        "startTime": 13.514,
+        "endTime": 13.653
+      },
+      {
+        "word": "applies",
+        "startTime": 13.688,
+        "endTime": 14.048
+      },
+      {
+        "word": "to",
+        "startTime": 14.094,
+        "endTime": 14.153
+      },
+      {
+        "word": "any",
+        "startTime": 14.234,
+        "endTime": 14.408
+      },
+      {
+        "word": "closed",
+        "startTime": 14.478,
+        "endTime": 14.873
+      },
+      {
+        "word": "surface:",
+        "startTime": 14.931,
+        "endTime": 15.535
+      },
+      {
+        "word": "spheres,",
+        "startTime": 15.662,
+        "endTime": 16.254
+      },
+      {
+        "word": "sandwiches,",
+        "startTime": 16.336,
+        "endTime": 17.09
+      },
+      {
+        "word": "even",
+        "startTime": 17.241,
+        "endTime": 17.497
+      },
+      {
+        "word": "fish",
+        "startTime": 17.566,
+        "endTime": 17.787
+      },
+      {
+        "word": "fillets.",
+        "startTime": 17.833,
+        "endTime": 18.367
+      }
+    ]
+  },
+  {
+    "text": "Mathematically, any continuous tangent vector field must vanish somewhere.",
+    "startTime": 18.809,
+    "endTime": 23.151,
+    "words": [
+      {
+        "word": "Mathematically,",
+        "startTime": 18.809,
+        "endTime": 19.691
+      },
+      {
+        "word": "any",
+        "startTime": 19.761,
+        "endTime": 19.981
+      },
+      {
+        "word": "continuous",
+        "startTime": 20.039,
+        "endTime": 20.585
+      },
+      {
+        "word": "tangent",
+        "startTime": 20.631,
+        "endTime": 21.038
+      },
+      {
+        "word": "vector",
+        "startTime": 21.096,
+        "endTime": 21.409
+      },
+      {
+        "word": "field",
+        "startTime": 21.456,
+        "endTime": 21.781
+      },
+      {
+        "word": "must",
+        "startTime": 21.99,
+        "endTime": 22.199
+      },
+      {
+        "word": "vanish",
+        "startTime": 22.257,
+        "endTime": 22.559
+      },
+      {
+        "word": "somewhere.",
+        "startTime": 22.605,
+        "endTime": 23.151
+      }
+    ]
+  },
+  {
+    "text": "You simply cannot comb it smooth.",
+    "startTime": 23.325,
+    "endTime": 25.136,
+    "words": [
+      {
+        "word": "You",
+        "startTime": 23.325,
+        "endTime": 23.453
+      },
+      {
+        "word": "simply",
+        "startTime": 23.522,
+        "endTime": 23.801
+      },
+      {
+        "word": "cannot",
+        "startTime": 23.847,
+        "endTime": 24.103
+      },
+      {
+        "word": "comb",
+        "startTime": 24.161,
+        "endTime": 24.37
+      },
+      {
+        "word": "it",
+        "startTime": 24.416,
+        "endTime": 24.498
+      },
+      {
+        "word": "smooth.",
+        "startTime": 24.556,
+        "endTime": 25.136
+      }
+    ]
+  },
+  {
+    "text": "Topology demands a singularity.",
+    "startTime": 25.647,
+    "endTime": 27.911,
+    "words": [
+      {
+        "word": "Topology",
+        "startTime": 25.647,
+        "endTime": 26.204
+      },
+      {
+        "word": "demands",
+        "startTime": 26.262,
+        "endTime": 26.669
+      },
+      {
+        "word": "a",
+        "startTime": 26.703,
+        "endTime": 26.738
+      },
+      {
+        "word": "singularity.",
+        "startTime": 26.785,
+        "endTime": 27.911
+      }
+    ]
+  }
+]

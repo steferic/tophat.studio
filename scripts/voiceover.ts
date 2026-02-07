@@ -20,10 +20,17 @@ interface TimestampResponse {
   };
 }
 
+export interface WordTiming {
+  word: string;
+  startTime: number;
+  endTime: number;
+}
+
 export interface SubtitleSegment {
   text: string;
   startTime: number;
   endTime: number;
+  words: WordTiming[];
 }
 
 // --- Helpers ---
@@ -172,72 +179,83 @@ async function generateSpeechWithTimestamps(
 }
 
 /**
- * Convert character-level timestamps to word/phrase segments.
+ * Convert character-level timestamps to word-level and sentence-level segments.
  * Groups by sentences (ending with . ! ?) for natural subtitle breaks.
+ * Each segment includes word-level timing for karaoke-style highlighting.
  */
 function buildSubtitles(alignment: TimestampResponse["alignment"]): SubtitleSegment[] {
   const { characters, character_start_times_seconds, character_end_times_seconds } = alignment;
-  const segments: SubtitleSegment[] = [];
 
-  let currentText = "";
-  let segmentStart: number | null = null;
-  let segmentEnd = 0;
+  // First, build word timings from character data
+  const allWords: WordTiming[] = [];
+  let currentWord = "";
+  let wordStart: number | null = null;
+  let wordEnd = 0;
 
   for (let i = 0; i < characters.length; i++) {
     const char = characters[i];
     const startTime = character_start_times_seconds[i];
     const endTime = character_end_times_seconds[i];
 
-    if (segmentStart === null && char.trim()) {
-      segmentStart = startTime;
-    }
-
-    currentText += char;
-    segmentEnd = endTime;
-
-    // Split on sentence boundaries
-    if (char === "." || char === "!" || char === "?") {
-      // Look ahead - if next non-space char is uppercase or we're at end, close segment
-      const remaining = characters.slice(i + 1).join("");
-      const nextWord = remaining.trimStart();
-
-      if (
-        !nextWord || // End of text
-        nextWord[0] === nextWord[0]?.toUpperCase() // Next sentence starts
-      ) {
-        if (currentText.trim() && segmentStart !== null) {
-          segments.push({
-            text: currentText.trim(),
-            startTime: segmentStart,
-            endTime: segmentEnd,
-          });
-        }
-        currentText = "";
-        segmentStart = null;
-      }
-    }
-
-    // Also split on em-dash for natural pauses
-    if (char === "—" && currentText.trim().length > 20) {
-      if (currentText.trim() && segmentStart !== null) {
-        segments.push({
-          text: currentText.trim(),
-          startTime: segmentStart,
-          endTime: segmentEnd,
+    if (char === " " || char === "\n") {
+      // End of word
+      if (currentWord.trim() && wordStart !== null) {
+        allWords.push({
+          word: currentWord,
+          startTime: wordStart,
+          endTime: wordEnd,
         });
       }
-      currentText = "";
-      segmentStart = null;
+      currentWord = "";
+      wordStart = null;
+    } else {
+      // Part of a word
+      if (wordStart === null) {
+        wordStart = startTime;
+      }
+      currentWord += char;
+      wordEnd = endTime;
     }
   }
 
-  // Capture any remaining text
-  if (currentText.trim() && segmentStart !== null) {
-    segments.push({
-      text: currentText.trim(),
-      startTime: segmentStart,
-      endTime: segmentEnd,
+  // Capture last word
+  if (currentWord.trim() && wordStart !== null) {
+    allWords.push({
+      word: currentWord,
+      startTime: wordStart,
+      endTime: wordEnd,
     });
+  }
+
+  // Now group words into sentence segments
+  const segments: SubtitleSegment[] = [];
+  let segmentWords: WordTiming[] = [];
+  let segmentText = "";
+
+  for (let i = 0; i < allWords.length; i++) {
+    const wordTiming = allWords[i];
+    segmentWords.push(wordTiming);
+    segmentText += (segmentText ? " " : "") + wordTiming.word;
+
+    // Check if this word ends a sentence
+    const lastChar = wordTiming.word.slice(-1);
+    const isSentenceEnd = lastChar === "." || lastChar === "!" || lastChar === "?";
+
+    // Check if this word contains an em-dash and segment is long enough
+    const hasEmDash = wordTiming.word.includes("—") && segmentText.length > 25;
+
+    if (isSentenceEnd || hasEmDash || i === allWords.length - 1) {
+      if (segmentWords.length > 0) {
+        segments.push({
+          text: segmentText.trim(),
+          startTime: segmentWords[0].startTime,
+          endTime: segmentWords[segmentWords.length - 1].endTime,
+          words: [...segmentWords],
+        });
+      }
+      segmentWords = [];
+      segmentText = "";
+    }
   }
 
   return segments;
@@ -315,9 +333,9 @@ async function main() {
 
   console.log(`Voice: ${voiceName}`);
   console.log(`Model: ${model}`);
-  console.log(`Output: public/audio/${outputFile}`);
+  console.log(`Output: public/audio/voiceovers/${outputFile}`);
   if (withSubtitles) {
-    console.log(`Subtitles: public/audio/${subtitleFile}`);
+    console.log(`Subtitles: public/audio/voiceovers/${subtitleFile}`);
   }
   console.log(`Text: "${text}"\n`);
 
@@ -327,7 +345,7 @@ async function main() {
   // Generate speech
   console.log("Generating speech...");
 
-  const audioDir = join(process.cwd(), "public", "audio");
+  const audioDir = join(process.cwd(), "public", "audio", "voiceovers");
   mkdirSync(audioDir, { recursive: true });
 
   if (withSubtitles) {
@@ -352,8 +370,8 @@ async function main() {
     console.log(`Saved ${(audio.length / 1024).toFixed(1)} KB to ${outPath}`);
     console.log(`Saved ${subtitles.length} subtitle segments to ${subPath}`);
     console.log(`\nUsage in Remotion:`);
-    console.log(`  import subtitles from '../public/audio/${subtitleFile}';`);
-    console.log(`  <Audio src={staticFile('audio/${outputFile}')} />`);
+    console.log(`  import subtitles from '../public/audio/voiceovers/${subtitleFile}';`);
+    console.log(`  <Audio src={staticFile('audio/voiceovers/${outputFile}')} />`);
     console.log(`  <Subtitles segments={subtitles} />`);
   } else {
     const audio = await generateSpeech(apiKey, voiceId, text, {
@@ -373,7 +391,7 @@ async function main() {
     }
 
     console.log(`Saved ${(audio.length / 1024).toFixed(1)} KB to ${outPath}`);
-    console.log(`\nUsage in Remotion:\n  <Audio src={staticFile('audio/${outputFile}')} />`);
+    console.log(`\nUsage in Remotion:\n  <Audio src={staticFile('audio/voiceovers/${outputFile}')} />`);
   }
 }
 

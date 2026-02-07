@@ -80,6 +80,16 @@ export type { VectorComponentsProps } from './VectorComponents';
 export { HairyBall } from './HairyBall';
 export type { HairyBallProps } from './HairyBall';
 
+export { HairyBallApple } from './HairyBallApple';
+export type { HairyBallAppleProps } from './HairyBallApple';
+
 // Gravitational dynamics
 export { ThreeBody } from './ThreeBody';
 export type { ThreeBodyProps } from './ThreeBody';
+
+// Fun math animations
+export { YoinkySploinky } from './YoinkySploinky';
+export type { YoinkySploinkyProps } from './YoinkySploinky';
+
+export { YoinkySploinkyV2 } from './YoinkySploinkyV2';
+export type { YoinkySploinkyV2Props } from './YoinkySploinkyV2';

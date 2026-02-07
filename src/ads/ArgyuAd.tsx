@@ -620,7 +620,7 @@ export const ArgyuAd: React.FC = () => {
         {/* Audio */}
         <Sequence from={0} durationInFrames={1170}>
           <Audio
-            src={staticFile('audio/argyu-beat.mp3')}
+            src={staticFile('audio/music/argyu-beat.mp3')}
             volume={0.7}
             startFrom={0}
           />

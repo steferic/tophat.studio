@@ -1,0 +1,380 @@
+[
+  {
+    "text": "Three bodies, equal mass, set on a perfect figure-eight orbit.",
+    "startTime": 0,
+    "endTime": 3.994,
+    "words": [
+      {
+        "word": "Three",
+        "startTime": 0,
+        "endTime": 0.313
+      },
+      {
+        "word": "bodies,",
+        "startTime": 0.36,
+        "endTime": 0.789
+      },
+      {
+        "word": "equal",
+        "startTime": 0.859,
+        "endTime": 1.173
+      },
+      {
+        "word": "mass,",
+        "startTime": 1.242,
+        "endTime": 1.683
+      },
+      {
+        "word": "set",
+        "startTime": 1.858,
+        "endTime": 2.09
+      },
+      {
+        "word": "on",
+        "startTime": 2.148,
+        "endTime": 2.218
+      },
+      {
+        "word": "a",
+        "startTime": 2.252,
+        "endTime": 2.276
+      },
+      {
+        "word": "perfect",
+        "startTime": 2.345,
+        "endTime": 2.752
+      },
+      {
+        "word": "figure-eight",
+        "startTime": 2.821,
+        "endTime": 3.344
+      },
+      {
+        "word": "orbit.",
+        "startTime": 3.402,
+        "endTime": 3.994
+      }
+    ]
+  },
+  {
+    "text": "This is the Chenciner–Montgomery solution —",
+    "startTime": 4.505,
+    "endTime": 6.803,
+    "words": [
+      {
+        "word": "This",
+        "startTime": 4.505,
+        "endTime": 4.748
+      },
+      {
+        "word": "is",
+        "startTime": 4.807,
+        "endTime": 4.888
+      },
+      {
+        "word": "the",
+        "startTime": 4.934,
+        "endTime": 5.004
+      },
+      {
+        "word": "Chenciner–Montgomery",
+        "startTime": 5.05,
+        "endTime": 6.06
+      },
+      {
+        "word": "solution",
+        "startTime": 6.118,
+        "endTime": 6.606
+      },
+      {
+        "word": "—",
+        "startTime": 6.757,
+        "endTime": 6.803
+      }
+    ]
+  },
+  {
+    "text": "one of the few exact answers to the infamous three-body problem.",
+    "startTime": 7.129,
+    "endTime": 10.588,
+    "words": [
+      {
+        "word": "one",
+        "startTime": 7.129,
+        "endTime": 7.291
+      },
+      {
+        "word": "of",
+        "startTime": 7.326,
+        "endTime": 7.372
+      },
+      {
+        "word": "the",
+        "startTime": 7.419,
+        "endTime": 7.488
+      },
+      {
+        "word": "few",
+        "startTime": 7.558,
+        "endTime": 7.755
+      },
+      {
+        "word": "exact",
+        "startTime": 7.814,
+        "endTime": 8.185
+      },
+      {
+        "word": "answers",
+        "startTime": 8.243,
+        "endTime": 8.649
+      },
+      {
+        "word": "to",
+        "startTime": 8.696,
+        "endTime": 8.754
+      },
+      {
+        "word": "the",
+        "startTime": 8.812,
+        "endTime": 8.882
+      },
+      {
+        "word": "infamous",
+        "startTime": 8.951,
+        "endTime": 9.381
+      },
+      {
+        "word": "three-body",
+        "startTime": 9.427,
+        "endTime": 9.95
+      },
+      {
+        "word": "problem.",
+        "startTime": 10.008,
+        "endTime": 10.588
+      }
+    ]
+  },
+  {
+    "text": "But perfection is fragile.",
+    "startTime": 11.029,
+    "endTime": 12.736,
+    "words": [
+      {
+        "word": "But",
+        "startTime": 11.029,
+        "endTime": 11.192
+      },
+      {
+        "word": "perfection",
+        "startTime": 11.238,
+        "endTime": 11.761
+      },
+      {
+        "word": "is",
+        "startTime": 11.831,
+        "endTime": 11.981
+      },
+      {
+        "word": "fragile.",
+        "startTime": 12.051,
+        "endTime": 12.736
+      }
+    ]
+  },
+  {
+    "text": "A tiny nudge, and the symmetry shatters.",
+    "startTime": 12.91,
+    "endTime": 15.522,
+    "words": [
+      {
+        "word": "A",
+        "startTime": 12.91,
+        "endTime": 12.992
+      },
+      {
+        "word": "tiny",
+        "startTime": 13.073,
+        "endTime": 13.398
+      },
+      {
+        "word": "nudge,",
+        "startTime": 13.468,
+        "endTime": 13.967
+      },
+      {
+        "word": "and",
+        "startTime": 14.083,
+        "endTime": 14.211
+      },
+      {
+        "word": "the",
+        "startTime": 14.257,
+        "endTime": 14.326
+      },
+      {
+        "word": "symmetry",
+        "startTime": 14.373,
+        "endTime": 14.814
+      },
+      {
+        "word": "shatters.",
+        "startTime": 14.86,
+        "endTime": 15.522
+      }
+    ]
+  },
+  {
+    "text": "Newtonian gravity takes over, and chaos unfolds.",
+    "startTime": 16.033,
+    "endTime": 19.319,
+    "words": [
+      {
+        "word": "Newtonian",
+        "startTime": 16.033,
+        "endTime": 16.625
+      },
+      {
+        "word": "gravity",
+        "startTime": 16.695,
+        "endTime": 17.101
+      },
+      {
+        "word": "takes",
+        "startTime": 17.159,
+        "endTime": 17.403
+      },
+      {
+        "word": "over,",
+        "startTime": 17.461,
+        "endTime": 17.867
+      },
+      {
+        "word": "and",
+        "startTime": 17.914,
+        "endTime": 18.065
+      },
+      {
+        "word": "chaos",
+        "startTime": 18.134,
+        "endTime": 18.483
+      },
+      {
+        "word": "unfolds.",
+        "startTime": 18.564,
+        "endTime": 19.319
+      }
+    ]
+  },
+  {
+    "text": "No closed-form solution exists.",
+    "startTime": 19.829,
+    "endTime": 21.942,
+    "words": [
+      {
+        "word": "No",
+        "startTime": 19.829,
+        "endTime": 20.027
+      },
+      {
+        "word": "closed-form",
+        "startTime": 20.108,
+        "endTime": 20.723
+      },
+      {
+        "word": "solution",
+        "startTime": 20.793,
+        "endTime": 21.211
+      },
+      {
+        "word": "exists.",
+        "startTime": 21.269,
+        "endTime": 21.942
+      }
+    ]
+  },
+  {
+    "text": "Each body pulls the others in an unpredictable dance —",
+    "startTime": 22.186,
+    "endTime": 25.263,
+    "words": [
+      {
+        "word": "Each",
+        "startTime": 22.186,
+        "endTime": 22.395
+      },
+      {
+        "word": "body",
+        "startTime": 22.453,
+        "endTime": 22.732
+      },
+      {
+        "word": "pulls",
+        "startTime": 22.813,
+        "endTime": 23.127
+      },
+      {
+        "word": "the",
+        "startTime": 23.185,
+        "endTime": 23.266
+      },
+      {
+        "word": "others",
+        "startTime": 23.336,
+        "endTime": 23.614
+      },
+      {
+        "word": "in",
+        "startTime": 23.672,
+        "endTime": 23.754
+      },
+      {
+        "word": "an",
+        "startTime": 23.8,
+        "endTime": 23.858
+      },
+      {
+        "word": "unpredictable",
+        "startTime": 23.916,
+        "endTime": 24.601
+      },
+      {
+        "word": "dance",
+        "startTime": 24.636,
+        "endTime": 25.147
+      },
+      {
+        "word": "—",
+        "startTime": 25.193,
+        "endTime": 25.263
+      }
+    ]
+  },
+  {
+    "text": "beautiful, but fundamentally unsolvable.",
+    "startTime": 25.541,
+    "endTime": 28.235,
+    "words": [
+      {
+        "word": "beautiful,",
+        "startTime": 25.541,
+        "endTime": 26.203
+      },
+      {
+        "word": "but",
+        "startTime": 26.261,
+        "endTime": 26.424
+      },
+      {
+        "word": "fundamentally",
+        "startTime": 26.47,
+        "endTime": 27.086
+      },
+      {
+        "word": "unsolvable.",
+        "startTime": 27.155,
+        "endTime": 28.235
+      }
+    ]
+  }
+]

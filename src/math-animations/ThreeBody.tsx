@@ -8,7 +8,7 @@
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Audio, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Subtitles } from '../components/Subtitles';
-import threeBodySubtitles from '../../public/audio/three-body-voiceover.json';
+import threeBodySubtitles from '../../public/audio/voiceovers/three-body-voiceover.json';
 
 export interface ThreeBodyProps {
   startFrame?: number;
@@ -241,7 +241,7 @@ export const ThreeBody: React.FC<ThreeBodyProps> = ({
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0f172a' }}>
-      <Audio src={staticFile('audio/three-body-voiceover.mp3')} />
+      <Audio src={staticFile('audio/voiceovers/three-body-voiceover.mp3')} />
       <svg width={width} height={height}>
         <defs>
           {/* Glow filters for each body */}
@@ -415,7 +415,6 @@ export const ThreeBody: React.FC<ThreeBodyProps> = ({
         segments={threeBodySubtitles}
         fontSize={36}
         bottomOffset={120}
-        backgroundColor="rgba(15, 23, 42, 0.85)"
       />
     </AbsoluteFill>
   );

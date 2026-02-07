@@ -41,8 +41,12 @@ import {
   NeuralNetwork,
   VectorComponents,
   HairyBall,
+  HairyBallApple,
   ThreeBody,
+  YoinkySploinky,
+  YoinkySploinkyV2,
 } from "./math-animations";
+import { CityStreet } from "./videos/CityStreet";
 
 export const RemotionRoot = () => {
   return (
@@ -570,6 +574,21 @@ export const RemotionRoot = () => {
           }}
         />
 
+        {/* Hairy Ball Theorem - Apple Edition with voiceover - 30 seconds */}
+        <Composition
+          id="HairyBallApple"
+          component={HairyBallApple}
+          durationInFrames={1800}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            hairCount: 3000,
+            hairLength: 0.3,
+            appleScale: 1.5,
+          }}
+        />
+
         {/* Three-Body Problem - Gravitational chaos - 60 seconds */}
         <Composition
           id="ThreeBody"
@@ -583,6 +602,29 @@ export const RemotionRoot = () => {
             perturbation: 0.08,
             gravitationalConstant: 1,
             simulationSpeed: 3,
+          }}
+        />
+
+        {/* Yoinky Sploinky - Asymptotic Dance - 27 seconds */}
+        <Composition
+          id="YoinkySploinky"
+          component={YoinkySploinky}
+          durationInFrames={1620}
+          fps={60}
+          width={1920}
+          height={1080}
+        />
+
+        {/* Yoinky Sploinky V2 - Chaotic Bouncing Particles - 37 seconds */}
+        <Composition
+          id="YoinkySploinkyV2"
+          component={YoinkySploinkyV2}
+          durationInFrames={2210}
+          fps={60}
+          width={1920}
+          height={1080}
+          defaultProps={{
+            particleCount: 12,
           }}
         />
       </Folder>
@@ -639,6 +681,16 @@ export const RemotionRoot = () => {
           }}
         />
       </Folder>
+
+      {/* City Street Video - Diomira (Invisible Cities) */}
+      <Composition
+        id="CityStreet"
+        component={CityStreet}
+        durationInFrames={1088}
+        fps={24}
+        width={480}
+        height={816}
+      />
     </>
   );
 };
