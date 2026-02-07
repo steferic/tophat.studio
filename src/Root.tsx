@@ -47,6 +47,13 @@ import {
   YoinkySploinkyV2,
 } from "./math-animations";
 import { CityStreet } from "./videos/CityStreet";
+import { ProjectPlayer } from "./studio";
+import { project as exampleProject } from "./projects/example.project";
+import { getProjectDurationInFrames, VideoProject } from "./types/project";
+
+const ProjectPlayerWrapper: React.FC<{ project: VideoProject }> = ({ project }) => (
+  <ProjectPlayer project={project} />
+);
 
 export const RemotionRoot = () => {
   return (
@@ -691,6 +698,21 @@ export const RemotionRoot = () => {
         width={480}
         height={816}
       />
+
+      {/* Studio - AI-powered video composition from project manifests */}
+      <Folder name="Studio">
+        <Composition
+          id="ExampleProject"
+          component={ProjectPlayerWrapper}
+          durationInFrames={getProjectDurationInFrames(exampleProject)}
+          fps={exampleProject.fps}
+          width={exampleProject.resolution[0]}
+          height={exampleProject.resolution[1]}
+          defaultProps={{
+            project: exampleProject,
+          } as const}
+        />
+      </Folder>
     </>
   );
 };

@@ -1,0 +1,13 @@
+{
+  "prompt": "a simple red circle on white background",
+  "model": "gpt-image-1",
+  "generatedAt": "2026-02-07T20:51:42.852Z",
+  "params": {
+    "size": "1024x1024",
+    "quality": "low"
+  },
+  "type": "image",
+  "width": 1024,
+  "height": 1024,
+  "fileSize": 1169699
+}
