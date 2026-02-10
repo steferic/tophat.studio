@@ -27,6 +27,7 @@ import type {
   AudioLayer,
 } from '../types/project';
 import { KenBurns } from './KenBurns';
+import { FormulaOverlay } from './FormulaOverlay';
 
 // ---------------------------------------------------------------------------
 // Transition resolver
@@ -93,6 +94,17 @@ const SceneRenderer: React.FC<{ scene: Scene }> = ({ scene }) => {
     default:
       return <PlaceholderScene label="Unknown scene type" />;
   }
+};
+
+const SceneWithFormula: React.FC<{ scene: Scene }> = ({ scene }) => {
+  if (scene.formulaMeta) {
+    return (
+      <FormulaOverlay style={scene.formulaMeta.style} purpose={scene.formulaMeta.purpose}>
+        <SceneRenderer scene={scene} />
+      </FormulaOverlay>
+    );
+  }
+  return <SceneRenderer scene={scene} />;
 };
 
 // --- AI Video ---
@@ -321,7 +333,7 @@ export const ProjectPlayer: React.FC<ProjectPlayerProps> = ({ project }) => {
             // Add the scene
             elements.push(
               <TransitionSeries.Sequence key={scene.id} durationInFrames={sceneDuration}>
-                <SceneRenderer scene={scene} />
+                <SceneWithFormula scene={scene} />
                 <SceneAudioRenderer scene={scene} />
               </TransitionSeries.Sequence>
             );
@@ -350,7 +362,7 @@ export const ProjectPlayer: React.FC<ProjectPlayerProps> = ({ project }) => {
 
         return (
           <Sequence key={scene.id} from={from} durationInFrames={sceneDuration} premountFor={fps}>
-            <SceneRenderer scene={scene} />
+            <SceneWithFormula scene={scene} />
             <SceneAudioRenderer scene={scene} />
           </Sequence>
         );

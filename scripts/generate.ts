@@ -238,8 +238,11 @@ async function generateGoogleVideo(
       throw new Error(`Image not found: ${imgPath}`);
     }
     const imgBuffer = readFileSync(imgPath);
+    const ext = imgPath.toLowerCase();
+    const mimeType = ext.endsWith('.png') ? 'image/png' : ext.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
     generateRequest.image = {
-      image: { imageBytes: imgBuffer.toString('base64') },
+      imageBytes: imgBuffer.toString('base64'),
+      mimeType,
     } as typeof generateRequest.image;
   }
 
@@ -255,26 +258,20 @@ async function generateGoogleVideo(
     }
     const elapsed = Math.round((Date.now() - startTime) / 1000);
     process.stdout.write(`\r  Waiting... ${elapsed}s elapsed`);
-    await new Promise((r) => setTimeout(r, 5000));
-
-    if (operation.name) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      operation = await ai.operations.get({ operation: operation.name } as any) as typeof operation;
-    }
+    await new Promise((r) => setTimeout(r, 10000));
+    operation = await ai.operations.getVideosOperation({ operation });
   }
   console.log(''); // newline after progress
 
-  // Download the video
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const opResult = operation as any;
-  const videoUri: string | undefined = opResult?.response?.generatedVideos?.[0]?.video?.uri;
+  const videoUri: string | undefined = operation.response?.generatedVideos?.[0]?.video?.uri;
 
   if (!videoUri) {
     throw new Error('No video URI in response');
   }
 
   console.log('  Downloading generated video...');
-  const videoRes = await fetch(videoUri);
+  const videoUrl = `${videoUri}&key=${apiKey}`;
+  const videoRes = await fetch(videoUrl);
   if (!videoRes.ok) throw new Error(`Failed to download video: ${videoRes.status}`);
   const buffer = Buffer.from(await videoRes.arrayBuffer());
 

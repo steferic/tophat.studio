@@ -8,9 +8,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { generateApiPlugin } from './src/storyboard/server/generateApi';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), generateApiPlugin()],
   root: '.',
   publicDir: 'public',
   server: {

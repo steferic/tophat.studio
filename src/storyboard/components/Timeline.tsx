@@ -30,7 +30,7 @@ const TYPE_COLORS: Record<string, string> = {
   image: COLORS.green,
 };
 
-export const Timeline: React.FC = () => {
+export const Timeline: React.FC<{ onPlay?: () => void }> = ({ onPlay }) => {
   const project = useStoryboardStore((s) => s.project);
   const selectedSceneId = useStoryboardStore((s) => s.selectedSceneId);
   const totalDuration = useStoryboardStore((s) => s.totalDuration);
@@ -70,7 +70,30 @@ export const Timeline: React.FC = () => {
     <div style={containerStyle}>
       {/* Header row */}
       <div style={headerStyle}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.text }}>Timeline</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.text }}>Timeline</span>
+          {project.scenes.length > 0 && onPlay && (
+            <button
+              onClick={onPlay}
+              style={{
+                padding: '3px 10px',
+                borderRadius: 4,
+                border: 'none',
+                backgroundColor: COLORS.accent,
+                color: '#11111b',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontFamily: 'system-ui, sans-serif',
+              }}
+            >
+              ▶ Preview
+            </button>
+          )}
+        </div>
         <span style={{ fontSize: 10, color: COLORS.textDim, fontFamily: 'monospace' }}>
           {totalDuration.toFixed(1)}s total
         </span>

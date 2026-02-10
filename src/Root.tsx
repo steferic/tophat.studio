@@ -50,6 +50,7 @@ import { CityStreet } from "./videos/CityStreet";
 import { ProjectPlayer } from "./studio";
 import { project as exampleProject } from "./projects/example.project";
 import { getProjectDurationInFrames, VideoProject } from "./types/project";
+import { getAllFormulas, formulaToProject } from "./formulas";
 
 const ProjectPlayerWrapper: React.FC<{ project: VideoProject }> = ({ project }) => (
   <ProjectPlayer project={project} />
@@ -712,6 +713,23 @@ export const RemotionRoot = () => {
             project: exampleProject,
           } as const}
         />
+
+        {/* Formula-generated project compositions */}
+        {getAllFormulas().map((formula) => {
+          const project = formulaToProject(formula);
+          return (
+            <Composition
+              key={formula.id}
+              id={`Formula-${formula.id}`}
+              component={ProjectPlayerWrapper}
+              durationInFrames={getProjectDurationInFrames(project)}
+              fps={project.fps}
+              width={project.resolution[0]}
+              height={project.resolution[1]}
+              defaultProps={{ project }}
+            />
+          );
+        })}
       </Folder>
     </>
   );

@@ -41,6 +41,53 @@ export type KenBurnsPreset =
   | 'zoom-out-pan-left';
 
 // ---------------------------------------------------------------------------
+// Formula types
+// ---------------------------------------------------------------------------
+
+export type SegmentPurpose = 'hook' | 'setup' | 'progression' | 're-engage' | 'middle' | 'climax' | 'end' | 'custom';
+export type ColorMood = 'vibrant' | 'warm' | 'cool' | 'danger-red' | 'dark' | 'neon' | 'neutral';
+export type AudioMood = 'intense' | 'building' | 'suspense' | 'triumphant' | 'calm' | 'chaotic' | 'silence';
+
+export interface PacingProfile {
+  cutsPerMin: number;
+  shotDuration: number;
+}
+
+export interface SegmentStyleHints {
+  pacing: PacingProfile;
+  transition: TransitionType;
+  transitionDuration: number;
+  colorMood: ColorMood;
+  energy: number;
+  textOverlayHint?: string;
+  kenBurns?: KenBurnsPreset;
+  audioMood: AudioMood;
+  sfxIntensity: number;
+}
+
+export interface FormulaSegment {
+  label: string;
+  purpose: SegmentPurpose;
+  duration: number;
+  defaultSceneType: 'ai-image' | 'ai-video';
+  style: SegmentStyleHints;
+  promptHint?: string;
+}
+
+export interface VideoFormula {
+  id: string;
+  name: string;
+  description: string;
+  author: string;
+  tags: string[];
+  targetDuration: number;
+  segments: FormulaSegment[];
+  defaultTransition: { type: TransitionType; duration: number };
+  fps: number;
+  resolution: [number, number];
+}
+
+// ---------------------------------------------------------------------------
 // Scene definitions
 // ---------------------------------------------------------------------------
 
@@ -56,6 +103,15 @@ interface SceneBase {
   };
   /** Audio layers for this scene */
   audio?: SceneAudio;
+  /** Formula metadata (present when scene was created from a formula) */
+  formulaMeta?: {
+    formulaId: string;
+    segmentIndex: number;
+    segmentLabel: string;
+    purpose: SegmentPurpose;
+    style: SegmentStyleHints;
+    promptHint?: string;
+  };
 }
 
 export interface AIVideoScene extends SceneBase {
@@ -66,6 +122,8 @@ export interface AIVideoScene extends SceneBase {
   model: AIModel;
   /** Path to generated asset (populated after generation) */
   assetPath?: string;
+  /** Reference image to use as first frame / input (path relative to public/) */
+  referenceImage?: string;
   /** Negative prompt */
   negativePrompt?: string;
   /** Aspect ratio override */
@@ -80,6 +138,8 @@ export interface AIImageScene extends SceneBase {
   model: AIModel;
   /** Path to generated asset (populated after generation) */
   assetPath?: string;
+  /** Reference image to use as input/edit base (path relative to public/) */
+  referenceImage?: string;
   /** Ken Burns animation to apply */
   animation?: KenBurnsPreset;
   /** Image size (e.g. "1792x1024") */

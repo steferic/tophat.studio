@@ -3,8 +3,8 @@
  * Shows type icon, prompt/source, duration, thumbnail, and actions.
  */
 
-import React from 'react';
-import type { Scene } from '../../types/project';
+import React, { useRef, useState } from 'react';
+import type { Scene, SegmentPurpose } from '../../types/project';
 import { useStoryboardStore } from '../state/storyboardStore';
 
 const COLORS = {
@@ -24,6 +24,17 @@ const COLORS = {
   peach: '#fab387',
 };
 
+const PURPOSE_COLORS: Record<SegmentPurpose, string> = {
+  hook: '#f38ba8',
+  setup: '#89b4fa',
+  progression: '#a6e3a1',
+  're-engage': '#f9e2af',
+  middle: '#94e2d5',
+  climax: '#fab387',
+  end: '#cba6f7',
+  custom: '#6c7086',
+};
+
 const TYPE_CONFIG: Record<string, { label: string; icon: string; color: string }> = {
   'ai-video': { label: 'AI Video', icon: '🎬', color: COLORS.purple },
   'ai-image': { label: 'AI Image', icon: '🖼', color: COLORS.teal },
@@ -40,7 +51,10 @@ export interface SceneCardProps {
 export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
   const selectedSceneId = useStoryboardStore((s) => s.selectedSceneId);
   const generatingSceneId = useStoryboardStore((s) => s.generatingSceneId);
-  const { selectScene, removeScene, moveScene, duplicateScene } = useStoryboardStore();
+  const { selectScene, removeScene, moveScene, duplicateScene, generateScene } = useStoryboardStore();
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const isSelected = selectedSceneId === scene.id;
   const isGenerating = generatingSceneId === scene.id;
@@ -48,6 +62,8 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
 
   const needsGeneration =
     (scene.type === 'ai-image' || scene.type === 'ai-video') && !('assetPath' in scene && scene.assetPath);
+  const hasAsset =
+    (scene.type === 'ai-image' || scene.type === 'ai-video') && 'assetPath' in scene && !!scene.assetPath;
 
   const getSubtitle = (): string => {
     switch (scene.type) {
@@ -65,11 +81,37 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
     }
   };
 
+  const getThumbnailSrc = (): string | null => {
+    if (scene.type === 'ai-image' || scene.type === 'ai-video') {
+      const assetPath = (scene as { assetPath?: string }).assetPath;
+      if (assetPath) return `/${assetPath}`;
+    }
+    if (scene.type === 'image') return `/${scene.src}`;
+    if (scene.type === 'video') return `/${scene.src}`;
+    return null;
+  };
+
+  const thumbnailSrc = getThumbnailSrc();
+  const isVideo = scene.type === 'ai-video' || scene.type === 'video';
+
   const getAnimation = (): string | null => {
     if (scene.type === 'ai-image' || scene.type === 'image') {
       return (scene as { animation?: string }).animation ?? null;
     }
     return null;
+  };
+
+  const handleVideoClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play();
+      setIsPlaying(true);
+    } else {
+      vid.pause();
+      setIsPlaying(false);
+    }
   };
 
   return (
@@ -117,7 +159,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
       <div
         style={{
           width: '100%',
-          height: 100,
+          height: 120,
           borderRadius: 6,
           backgroundColor: '#11111b',
           display: 'flex',
@@ -135,6 +177,65 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
               {isGenerating ? 'generating...' : 'needs generation'}
             </div>
           </div>
+        ) : thumbnailSrc ? (
+          isVideo ? (
+            <div
+              onClick={handleVideoClick}
+              style={{ width: '100%', height: '100%', position: 'relative', cursor: 'pointer' }}
+            >
+              <video
+                ref={videoRef}
+                src={thumbnailSrc}
+                muted
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onEnded={() => setIsPlaying(false)}
+                onPause={() => setIsPlaying(false)}
+                onPlay={() => setIsPlaying(true)}
+              />
+              {/* Play/pause overlay */}
+              {!isPlaying && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: 'rgba(0,0,0,0.3)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 30,
+                      height: 30,
+                      borderRadius: '50%',
+                      backgroundColor: 'rgba(255,255,255,0.85)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 0,
+                        height: 0,
+                        borderStyle: 'solid',
+                        borderWidth: '6px 0 6px 10px',
+                        borderColor: 'transparent transparent transparent #11111b',
+                        marginLeft: 2,
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <img
+              src={thumbnailSrc}
+              alt={(scene as any).prompt ?? ''}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          )
         ) : (
           <span>{config.icon}</span>
         )}
@@ -173,6 +274,27 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
             }}
           >
             {getAnimation()}
+          </div>
+        )}
+
+        {/* Formula purpose badge */}
+        {scene.formulaMeta && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 4,
+              left: 4,
+              backgroundColor: 'rgba(0,0,0,0.7)',
+              color: PURPOSE_COLORS[scene.formulaMeta.purpose],
+              fontSize: 9,
+              fontWeight: 600,
+              padding: '2px 6px',
+              borderRadius: 3,
+              fontFamily: 'system-ui, sans-serif',
+              textTransform: 'uppercase',
+            }}
+          >
+            {scene.formulaMeta.purpose}
           </div>
         )}
       </div>
@@ -227,11 +349,35 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene, index }) => {
             display: 'flex',
             gap: 4,
             marginTop: 2,
+            flexWrap: 'wrap',
           }}
         >
           <SmallBtn label="^" title="Move up" onClick={() => moveScene(scene.id, 'up')} />
           <SmallBtn label="v" title="Move down" onClick={() => moveScene(scene.id, 'down')} />
           <SmallBtn label="dup" title="Duplicate" onClick={() => duplicateScene(scene.id)} />
+          {needsGeneration && (
+            <SmallBtn
+              label={isGenerating ? '...' : 'gen'}
+              title="Generate asset"
+              onClick={(e) => {
+                e.stopPropagation();
+                generateScene(scene.id).catch((err) => alert(`Error: ${err.message}`));
+              }}
+              color={COLORS.green}
+            />
+          )}
+          {hasAsset && (
+            <SmallBtn
+              label={isGenerating ? '...' : 'regen'}
+              title="Re-generate with current prompt"
+              onClick={(e) => {
+                e.stopPropagation();
+                useStoryboardStore.getState().regenerateScene(scene.id)
+                  .catch((err) => alert(`Error: ${err.message}`));
+              }}
+              color={COLORS.yellow}
+            />
+          )}
           <div style={{ flex: 1 }} />
           <SmallBtn
             label="x"

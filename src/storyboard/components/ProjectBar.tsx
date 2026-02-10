@@ -5,6 +5,7 @@
 
 import React, { useRef } from 'react';
 import { useStoryboardStore } from '../state/storyboardStore';
+import { getFormulaById } from '../../formulas';
 
 const COLORS = {
   bg: '#181825',
@@ -24,12 +25,17 @@ export const ProjectBar: React.FC = () => {
   const isDirty = useStoryboardStore((s) => s.isDirty);
   const totalDuration = useStoryboardStore((s) => s.totalDuration);
   const isGenerating = useStoryboardStore((s) => s.isGenerating);
+  const activeFormulaId = useStoryboardStore((s) => s.activeFormulaId);
   const {
     updateProjectMeta,
     newProject,
     exportProjectJSON,
     importProjectJSON,
+    generateAllScenes,
+    setShowFormulaModal,
   } = useStoryboardStore();
+
+  const activeFormula = activeFormulaId ? getFormulaById(activeFormulaId) : null;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -127,9 +133,23 @@ export const ProjectBar: React.FC = () => {
             {' '}&middot; {aiScenes} to generate
           </span>
         )}
+        {activeFormula && (
+          <span style={{ color: '#cba6f7' }}>
+            {' '}&middot; {activeFormula.name}
+          </span>
+        )}
       </span>
 
       {/* Actions */}
+      <BarButton
+        label="Formula"
+        onClick={() => setShowFormulaModal(true)}
+        style={{
+          backgroundColor: activeFormula ? '#cba6f7' : 'transparent',
+          color: activeFormula ? '#11111b' : '#cba6f7',
+          borderColor: '#cba6f7',
+        }}
+      />
       <BarButton label="New" onClick={handleNew} />
       <BarButton label="Load" onClick={handleLoad} />
       <BarButton label="Save JSON" onClick={handleSave} />
@@ -139,11 +159,9 @@ export const ProjectBar: React.FC = () => {
         <BarButton
           label={isGenerating ? 'Generating...' : `Generate ${aiScenes}`}
           onClick={() => {
-            // In a full implementation, this would trigger batch generation
-            // via a WebSocket or API call to the generate script
-            alert(
-              `Run in terminal:\nnpx tsx scripts/generate.ts batch <your-project-file>\n\nBatch generation from the UI coming soon!`
-            );
+            generateAllScenes().catch((err) => {
+              alert(`Generation error: ${err.message}`);
+            });
           }}
           accent
           disabled={isGenerating}

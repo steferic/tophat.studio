@@ -8,13 +8,15 @@
  * └───────────────────────────────────────────────────────────┘
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useStoryboardStore, useProjectScenes } from '../state/storyboardStore';
 import { ProjectBar } from './ProjectBar';
 import { AssetLibrary } from './AssetLibrary';
 import { SceneCard } from './SceneCard';
 import { SceneEditor } from './SceneEditor';
 import { Timeline } from './Timeline';
+import { PreviewPlayer } from './PreviewPlayer';
+import { FormulaModal } from './FormulaModal';
 
 const COLORS = {
   bg: '#11111b',
@@ -28,6 +30,12 @@ const COLORS = {
 export const StoryboardApp: React.FC = () => {
   const panels = useStoryboardStore((s) => s.panels);
   const scenes = useProjectScenes();
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Load assets on mount
+  useEffect(() => {
+    useStoryboardStore.getState().refreshAssets();
+  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -105,7 +113,18 @@ export const StoryboardApp: React.FC = () => {
       </div>
 
       {/* Bottom: Timeline */}
-      {panels.timeline && <Timeline />}
+      {panels.timeline && <Timeline onPlay={() => setShowPreview(true)} />}
+
+      {/* Preview Player overlay */}
+      {showPreview && (
+        <PreviewPlayer
+          scenes={scenes}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
+
+      {/* Formula Modal */}
+      <FormulaModal />
     </div>
   );
 };

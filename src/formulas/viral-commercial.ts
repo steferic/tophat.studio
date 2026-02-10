@@ -1,0 +1,125 @@
+import type { VideoFormula } from '../types/project';
+
+export const viralCommercialFormula: VideoFormula = {
+  id: 'viral-commercial-30s',
+  name: 'Viral Commercial (30s)',
+  description:
+    'MrBeast energy compressed into a 30-second commercial. Hits hard in the first second, never lets up, ends before the viewer can look away. Every frame earns its place.',
+  author: 'Remotion Studio',
+  tags: ['commercial', 'ad', '30s', 'high-energy', 'viral'],
+  targetDuration: 30,
+  fps: 30,
+  resolution: [1920, 1080],
+  defaultTransition: { type: 'zoom', duration: 0.15 },
+  segments: [
+    {
+      label: 'Pattern Interrupt',
+      purpose: 'hook',
+      duration: 2,
+      defaultSceneType: 'ai-video',
+      style: {
+        pacing: { cutsPerMin: 60, shotDuration: 1 },
+        transition: 'zoom',
+        transitionDuration: 0.1,
+        colorMood: 'neon',
+        energy: 10,
+        textOverlayHint: 'STOP.',
+        audioMood: 'intense',
+        sfxIntensity: 10,
+      },
+      promptHint:
+        'Jarring visual that breaks the scroll — the single most arresting image or moment',
+    },
+    {
+      label: 'The Problem',
+      purpose: 'setup',
+      duration: 4,
+      defaultSceneType: 'ai-video',
+      style: {
+        pacing: { cutsPerMin: 30, shotDuration: 2 },
+        transition: 'wipe',
+        transitionDuration: 0.15,
+        colorMood: 'danger-red',
+        energy: 8,
+        textOverlayHint: 'THE PROBLEM',
+        kenBurns: 'zoom-in',
+        audioMood: 'suspense',
+        sfxIntensity: 7,
+      },
+      promptHint:
+        'Show the pain point fast — what sucks, what is broken, what is missing',
+    },
+    {
+      label: 'The Reveal',
+      purpose: 're-engage',
+      duration: 5,
+      defaultSceneType: 'ai-video',
+      style: {
+        pacing: { cutsPerMin: 40, shotDuration: 1.5 },
+        transition: 'zoom',
+        transitionDuration: 0.1,
+        colorMood: 'vibrant',
+        energy: 9,
+        textOverlayHint: 'UNTIL NOW',
+        audioMood: 'triumphant',
+        sfxIntensity: 9,
+      },
+      promptHint:
+        'Dramatic product/solution reveal — this is the turn, the moment everything changes',
+    },
+    {
+      label: 'Proof Stack',
+      purpose: 'progression',
+      duration: 10,
+      defaultSceneType: 'ai-video',
+      style: {
+        pacing: { cutsPerMin: 24, shotDuration: 2.5 },
+        transition: 'slide',
+        transitionDuration: 0.2,
+        colorMood: 'warm',
+        energy: 8,
+        audioMood: 'building',
+        sfxIntensity: 6,
+      },
+      promptHint:
+        'Rapid proof — show it working, show the results, show the reactions, stack the evidence fast',
+    },
+    {
+      label: 'Peak Moment',
+      purpose: 'climax',
+      duration: 5,
+      defaultSceneType: 'ai-video',
+      style: {
+        pacing: { cutsPerMin: 50, shotDuration: 1.2 },
+        transition: 'zoom',
+        transitionDuration: 0.1,
+        colorMood: 'neon',
+        energy: 10,
+        textOverlayHint: 'INSANE',
+        audioMood: 'chaotic',
+        sfxIntensity: 10,
+      },
+      promptHint:
+        'The single best result, biggest reaction, most unbelievable outcome — maximum impact',
+    },
+    {
+      label: 'Hard CTA',
+      purpose: 'end',
+      duration: 4,
+      defaultSceneType: 'ai-image',
+      style: {
+        pacing: { cutsPerMin: 15, shotDuration: 4 },
+        transition: 'fade',
+        transitionDuration: 0.2,
+        colorMood: 'vibrant',
+        energy: 9,
+        textOverlayHint: 'GET IT NOW',
+        kenBurns: 'zoom-in',
+        audioMood: 'intense',
+        sfxIntensity: 8,
+      },
+      promptHint:
+        'Logo, URL, or action — one clear thing to do, no hesitation, end while energy is still at max',
+    },
+  ],
+};

@@ -11,6 +11,7 @@ import { immer } from 'zustand/middleware/immer';
 import { devtools } from 'zustand/middleware';
 import type {
   VideoProject,
+  VideoFormula,
   Scene,
   AIVideoScene,
   AIImageScene,
@@ -23,6 +24,7 @@ import type {
   AssetMeta,
 } from '../../types/project';
 import { getProjectDuration, getProjectDurationInFrames } from '../../types/project';
+import { formulaToProject } from '../../formulas/registry';
 
 // ---------------------------------------------------------------------------
 // Asset types
@@ -62,6 +64,10 @@ export interface StoryboardState {
   };
   isGenerating: boolean;
   generatingSceneId: string | null;
+
+  // Formula
+  activeFormulaId: string | null;
+  showFormulaModal: boolean;
 
   // Computed
   totalDuration: number;
@@ -113,9 +119,17 @@ export interface StoryboardActions {
   // Generation
   setGenerating: (isGenerating: boolean, sceneId?: string | null) => void;
   markSceneGenerated: (sceneId: string, assetPath: string) => void;
+  generateScene: (sceneId: string) => Promise<void>;
+  regenerateScene: (sceneId: string) => Promise<void>;
+  generateAllScenes: () => Promise<void>;
 
   // UI
   togglePanel: (panel: keyof StoryboardState['panels']) => void;
+
+  // Formula
+  applyFormula: (formula: VideoFormula) => void;
+  clearFormula: () => void;
+  setShowFormulaModal: (show: boolean) => void;
 
   // Serialization
   exportProjectJSON: () => string;
@@ -169,6 +183,8 @@ export const useStoryboardStore = create<StoryboardState & StoryboardActions>()(
       },
       isGenerating: false,
       generatingSceneId: null,
+      activeFormulaId: null,
+      showFormulaModal: false,
       totalDuration: 0,
       totalFrames: 0,
 
@@ -447,6 +463,100 @@ export const useStoryboardStore = create<StoryboardState & StoryboardActions>()(
             (scene as AIImageScene | AIVideoScene).assetPath = assetPath;
             s.isDirty = true;
           }
+        }),
+
+      generateScene: async (sceneId) => {
+        const { project, setGenerating, markSceneGenerated } = get();
+        const scene = project.scenes.find((sc) => sc.id === sceneId);
+        if (!scene) return;
+        if (scene.type !== 'ai-image' && scene.type !== 'ai-video') return;
+
+        setGenerating(true, sceneId);
+        try {
+          const isImage = scene.type === 'ai-image';
+          const endpoint = isImage ? '/api/generate/image' : '/api/generate/video';
+          const body: Record<string, unknown> = {
+            prompt: scene.prompt,
+            model: scene.model,
+          };
+          // Include referenceImage if set
+          if ((scene as AIImageScene | AIVideoScene).referenceImage) {
+            body.referenceImage = (scene as AIImageScene | AIVideoScene).referenceImage;
+          }
+          if (isImage) {
+            const s = scene as AIImageScene;
+            if (s.size) body.size = s.size;
+            if (s.quality) body.quality = s.quality;
+            if (s.negativePrompt) body.negativePrompt = s.negativePrompt;
+          } else {
+            body.duration = scene.duration;
+          }
+
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error ?? `HTTP ${res.status}`);
+          }
+
+          const result = await res.json();
+          markSceneGenerated(sceneId, result.assetPath);
+          // Refresh asset library
+          get().refreshAssets();
+        } catch (err) {
+          console.error(`Generation failed for ${sceneId}:`, err);
+          throw err;
+        } finally {
+          setGenerating(false);
+        }
+      },
+
+      regenerateScene: async (sceneId) => {
+        const { project, updateScene, generateScene } = get();
+        const scene = project.scenes.find((sc) => sc.id === sceneId);
+        if (!scene) return;
+        if (scene.type !== 'ai-image' && scene.type !== 'ai-video') return;
+        // Clear existing asset so generation runs fresh
+        updateScene(sceneId, { assetPath: undefined } as any);
+        await generateScene(sceneId);
+      },
+
+      generateAllScenes: async () => {
+        const { project, generateScene } = get();
+        const toGenerate = project.scenes.filter(
+          (s) => (s.type === 'ai-image' || s.type === 'ai-video') && !(s as any).assetPath
+        );
+        for (const scene of toGenerate) {
+          await generateScene(scene.id);
+        }
+      },
+
+      // --- Formula ---
+
+      applyFormula: (formula) =>
+        set((s) => {
+          const project = formulaToProject(formula);
+          s.project = project;
+          s.activeFormulaId = formula.id;
+          s.showFormulaModal = false;
+          s.isDirty = true;
+          s.selectedSceneId = null;
+          s.totalDuration = getProjectDuration(project);
+          s.totalFrames = getProjectDurationInFrames(project);
+        }),
+
+      clearFormula: () =>
+        set((s) => {
+          s.activeFormulaId = null;
+        }),
+
+      setShowFormulaModal: (show) =>
+        set((s) => {
+          s.showFormulaModal = show;
         }),
 
       // --- UI ---
