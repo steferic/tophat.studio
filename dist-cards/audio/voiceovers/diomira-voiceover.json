@@ -1,0 +1,703 @@
+[
+  {
+    "text": "Leaving there and proceeding for three days toward the east, you reach Diomira, a city with sixty silver domes, bronze statues of all the gods, streets paved with lead, a crystal theater, a golden cock that crows each morning on a tower.",
+    "startTime": 0,
+    "endTime": 15.325,
+    "words": [
+      {
+        "word": "Leaving",
+        "startTime": 0,
+        "endTime": 0.383
+      },
+      {
+        "word": "there",
+        "startTime": 0.441,
+        "endTime": 0.639
+      },
+      {
+        "word": "and",
+        "startTime": 0.685,
+        "endTime": 0.778
+      },
+      {
+        "word": "proceeding",
+        "startTime": 0.836,
+        "endTime": 1.3
+      },
+      {
+        "word": "for",
+        "startTime": 1.358,
+        "endTime": 1.463
+      },
+      {
+        "word": "three",
+        "startTime": 1.509,
+        "endTime": 1.753
+      },
+      {
+        "word": "days",
+        "startTime": 1.8,
+        "endTime": 2.09
+      },
+      {
+        "word": "toward",
+        "startTime": 2.148,
+        "endTime": 2.473
+      },
+      {
+        "word": "the",
+        "startTime": 2.508,
+        "endTime": 2.577
+      },
+      {
+        "word": "east,",
+        "startTime": 2.659,
+        "endTime": 3.077
+      },
+      {
+        "word": "you",
+        "startTime": 3.32,
+        "endTime": 3.425
+      },
+      {
+        "word": "reach",
+        "startTime": 3.506,
+        "endTime": 3.715
+      },
+      {
+        "word": "Diomira,",
+        "startTime": 3.785,
+        "endTime": 4.656
+      },
+      {
+        "word": "a",
+        "startTime": 4.981,
+        "endTime": 5.05
+      },
+      {
+        "word": "city",
+        "startTime": 5.132,
+        "endTime": 5.387
+      },
+      {
+        "word": "with",
+        "startTime": 5.433,
+        "endTime": 5.573
+      },
+      {
+        "word": "sixty",
+        "startTime": 5.619,
+        "endTime": 5.968
+      },
+      {
+        "word": "silver",
+        "startTime": 6.037,
+        "endTime": 6.362
+      },
+      {
+        "word": "domes,",
+        "startTime": 6.409,
+        "endTime": 6.943
+      },
+      {
+        "word": "bronze",
+        "startTime": 7.152,
+        "endTime": 7.558
+      },
+      {
+        "word": "statues",
+        "startTime": 7.593,
+        "endTime": 8.127
+      },
+      {
+        "word": "of",
+        "startTime": 8.162,
+        "endTime": 8.231
+      },
+      {
+        "word": "all",
+        "startTime": 8.29,
+        "endTime": 8.522
+      },
+      {
+        "word": "the",
+        "startTime": 8.568,
+        "endTime": 8.638
+      },
+      {
+        "word": "gods,",
+        "startTime": 8.696,
+        "endTime": 9.172
+      },
+      {
+        "word": "streets",
+        "startTime": 9.381,
+        "endTime": 9.741
+      },
+      {
+        "word": "paved",
+        "startTime": 9.81,
+        "endTime": 10.194
+      },
+      {
+        "word": "with",
+        "startTime": 10.228,
+        "endTime": 10.368
+      },
+      {
+        "word": "lead,",
+        "startTime": 10.449,
+        "endTime": 10.89
+      },
+      {
+        "word": "a",
+        "startTime": 11.064,
+        "endTime": 11.134
+      },
+      {
+        "word": "crystal",
+        "startTime": 11.215,
+        "endTime": 11.575
+      },
+      {
+        "word": "theater,",
+        "startTime": 11.645,
+        "endTime": 12.237
+      },
+      {
+        "word": "a",
+        "startTime": 12.411,
+        "endTime": 12.481
+      },
+      {
+        "word": "golden",
+        "startTime": 12.574,
+        "endTime": 12.945
+      },
+      {
+        "word": "cock",
+        "startTime": 13.026,
+        "endTime": 13.293
+      },
+      {
+        "word": "that",
+        "startTime": 13.363,
+        "endTime": 13.491
+      },
+      {
+        "word": "crows",
+        "startTime": 13.549,
+        "endTime": 13.92
+      },
+      {
+        "word": "each",
+        "startTime": 13.978,
+        "endTime": 14.153
+      },
+      {
+        "word": "morning",
+        "startTime": 14.222,
+        "endTime": 14.512
+      },
+      {
+        "word": "on",
+        "startTime": 14.571,
+        "endTime": 14.64
+      },
+      {
+        "word": "a",
+        "startTime": 14.686,
+        "endTime": 14.709
+      },
+      {
+        "word": "tower.",
+        "startTime": 14.768,
+        "endTime": 15.325
+      }
+    ]
+  },
+  {
+    "text": "All these beauties will already be familiar to the visitor, who has seen them also in other cities.",
+    "startTime": 15.766,
+    "endTime": 21.165,
+    "words": [
+      {
+        "word": "All",
+        "startTime": 15.766,
+        "endTime": 15.998
+      },
+      {
+        "word": "these",
+        "startTime": 16.068,
+        "endTime": 16.254
+      },
+      {
+        "word": "beauties",
+        "startTime": 16.3,
+        "endTime": 16.66
+      },
+      {
+        "word": "will",
+        "startTime": 16.706,
+        "endTime": 16.857
+      },
+      {
+        "word": "already",
+        "startTime": 16.915,
+        "endTime": 17.252
+      },
+      {
+        "word": "be",
+        "startTime": 17.299,
+        "endTime": 17.403
+      },
+      {
+        "word": "familiar",
+        "startTime": 17.461,
+        "endTime": 17.879
+      },
+      {
+        "word": "to",
+        "startTime": 17.925,
+        "endTime": 17.984
+      },
+      {
+        "word": "the",
+        "startTime": 18.042,
+        "endTime": 18.111
+      },
+      {
+        "word": "visitor,",
+        "startTime": 18.158,
+        "endTime": 18.773
+      },
+      {
+        "word": "who",
+        "startTime": 18.982,
+        "endTime": 19.121
+      },
+      {
+        "word": "has",
+        "startTime": 19.168,
+        "endTime": 19.261
+      },
+      {
+        "word": "seen",
+        "startTime": 19.295,
+        "endTime": 19.504
+      },
+      {
+        "word": "them",
+        "startTime": 19.551,
+        "endTime": 19.679
+      },
+      {
+        "word": "also",
+        "startTime": 19.737,
+        "endTime": 20.12
+      },
+      {
+        "word": "in",
+        "startTime": 20.201,
+        "endTime": 20.282
+      },
+      {
+        "word": "other",
+        "startTime": 20.329,
+        "endTime": 20.503
+      },
+      {
+        "word": "cities.",
+        "startTime": 20.549,
+        "endTime": 21.165
+      }
+    ]
+  },
+  {
+    "text": "But the special quality of this city for the man who arrives there on a September evening, when the days are growing shorter and the multicolored lamps are lighted all at once at the doors of the food stalls and from a terrace a woman's voice cries ooh\\!, is that he feels envy toward those who now believe they have once before lived an evening identical to this and who think they were happy, that time.",
+    "startTime": 21.606,
+    "endTime": 44.953,
+    "words": [
+      {
+        "word": "But",
+        "startTime": 21.606,
+        "endTime": 21.757
+      },
+      {
+        "word": "the",
+        "startTime": 21.78,
+        "endTime": 21.85
+      },
+      {
+        "word": "special",
+        "startTime": 21.884,
+        "endTime": 22.233
+      },
+      {
+        "word": "quality",
+        "startTime": 22.291,
+        "endTime": 22.674
+      },
+      {
+        "word": "of",
+        "startTime": 22.72,
+        "endTime": 22.767
+      },
+      {
+        "word": "this",
+        "startTime": 22.813,
+        "endTime": 22.941
+      },
+      {
+        "word": "city",
+        "startTime": 22.987,
+        "endTime": 23.243
+      },
+      {
+        "word": "for",
+        "startTime": 23.301,
+        "endTime": 23.394
+      },
+      {
+        "word": "the",
+        "startTime": 23.429,
+        "endTime": 23.498
+      },
+      {
+        "word": "man",
+        "startTime": 23.545,
+        "endTime": 23.742
+      },
+      {
+        "word": "who",
+        "startTime": 23.777,
+        "endTime": 23.881
+      },
+      {
+        "word": "arrives",
+        "startTime": 23.939,
+        "endTime": 24.334
+      },
+      {
+        "word": "there",
+        "startTime": 24.369,
+        "endTime": 24.601
+      },
+      {
+        "word": "on",
+        "startTime": 24.659,
+        "endTime": 24.775
+      },
+      {
+        "word": "a",
+        "startTime": 24.81,
+        "endTime": 24.833
+      },
+      {
+        "word": "September",
+        "startTime": 24.891,
+        "endTime": 25.402
+      },
+      {
+        "word": "evening,",
+        "startTime": 25.484,
+        "endTime": 26.041
+      },
+      {
+        "word": "when",
+        "startTime": 26.285,
+        "endTime": 26.447
+      },
+      {
+        "word": "the",
+        "startTime": 26.47,
+        "endTime": 26.54
+      },
+      {
+        "word": "days",
+        "startTime": 26.586,
+        "endTime": 26.83
+      },
+      {
+        "word": "are",
+        "startTime": 26.865,
+        "endTime": 26.958
+      },
+      {
+        "word": "growing",
+        "startTime": 26.981,
+        "endTime": 27.248
+      },
+      {
+        "word": "shorter",
+        "startTime": 27.306,
+        "endTime": 27.759
+      },
+      {
+        "word": "and",
+        "startTime": 27.875,
+        "endTime": 28.072
+      },
+      {
+        "word": "the",
+        "startTime": 28.119,
+        "endTime": 28.188
+      },
+      {
+        "word": "multicolored",
+        "startTime": 28.223,
+        "endTime": 28.85
+      },
+      {
+        "word": "lamps",
+        "startTime": 28.908,
+        "endTime": 29.198
+      },
+      {
+        "word": "are",
+        "startTime": 29.233,
+        "endTime": 29.326
+      },
+      {
+        "word": "lighted",
+        "startTime": 29.349,
+        "endTime": 29.686
+      },
+      {
+        "word": "all",
+        "startTime": 29.744,
+        "endTime": 29.965
+      },
+      {
+        "word": "at",
+        "startTime": 30.011,
+        "endTime": 30.081
+      },
+      {
+        "word": "once",
+        "startTime": 30.15,
+        "endTime": 30.417
+      },
+      {
+        "word": "at",
+        "startTime": 30.452,
+        "endTime": 30.533
+      },
+      {
+        "word": "the",
+        "startTime": 30.568,
+        "endTime": 30.638
+      },
+      {
+        "word": "doors",
+        "startTime": 30.684,
+        "endTime": 30.998
+      },
+      {
+        "word": "of",
+        "startTime": 31.033,
+        "endTime": 31.091
+      },
+      {
+        "word": "the",
+        "startTime": 31.137,
+        "endTime": 31.207
+      },
+      {
+        "word": "food",
+        "startTime": 31.253,
+        "endTime": 31.497
+      },
+      {
+        "word": "stalls",
+        "startTime": 31.544,
+        "endTime": 31.985
+      },
+      {
+        "word": "and",
+        "startTime": 32.31,
+        "endTime": 32.507
+      },
+      {
+        "word": "from",
+        "startTime": 32.565,
+        "endTime": 32.716
+      },
+      {
+        "word": "a",
+        "startTime": 32.763,
+        "endTime": 32.797
+      },
+      {
+        "word": "terrace",
+        "startTime": 32.855,
+        "endTime": 33.25
+      },
+      {
+        "word": "a",
+        "startTime": 33.297,
+        "endTime": 33.366
+      },
+      {
+        "word": "woman's",
+        "startTime": 33.436,
+        "endTime": 33.749
+      },
+      {
+        "word": "voice",
+        "startTime": 33.796,
+        "endTime": 34.051
+      },
+      {
+        "word": "cries",
+        "startTime": 34.098,
+        "endTime": 34.458
+      },
+      {
+        "word": "ooh\\!,",
+        "startTime": 34.551,
+        "endTime": 35.944
+      },
+      {
+        "word": "is",
+        "startTime": 36.455,
+        "endTime": 36.617
+      },
+      {
+        "word": "that",
+        "startTime": 36.652,
+        "endTime": 36.78
+      },
+      {
+        "word": "he",
+        "startTime": 36.814,
+        "endTime": 36.873
+      },
+      {
+        "word": "feels",
+        "startTime": 36.954,
+        "endTime": 37.279
+      },
+      {
+        "word": "envy",
+        "startTime": 37.372,
+        "endTime": 37.685
+      },
+      {
+        "word": "toward",
+        "startTime": 37.743,
+        "endTime": 38.057
+      },
+      {
+        "word": "those",
+        "startTime": 38.103,
+        "endTime": 38.382
+      },
+      {
+        "word": "who",
+        "startTime": 38.417,
+        "endTime": 38.51
+      },
+      {
+        "word": "now",
+        "startTime": 38.579,
+        "endTime": 38.707
+      },
+      {
+        "word": "believe",
+        "startTime": 38.777,
+        "endTime": 39.148
+      },
+      {
+        "word": "they",
+        "startTime": 39.183,
+        "endTime": 39.299
+      },
+      {
+        "word": "have",
+        "startTime": 39.345,
+        "endTime": 39.462
+      },
+      {
+        "word": "once",
+        "startTime": 39.508,
+        "endTime": 39.705
+      },
+      {
+        "word": "before",
+        "startTime": 39.752,
+        "endTime": 40.367
+      },
+      {
+        "word": "lived",
+        "startTime": 40.541,
+        "endTime": 40.797
+      },
+      {
+        "word": "an",
+        "startTime": 40.843,
+        "endTime": 40.913
+      },
+      {
+        "word": "evening",
+        "startTime": 41.006,
+        "endTime": 41.354
+      },
+      {
+        "word": "identical",
+        "startTime": 41.424,
+        "endTime": 41.946
+      },
+      {
+        "word": "to",
+        "startTime": 42.004,
+        "endTime": 42.062
+      },
+      {
+        "word": "this",
+        "startTime": 42.12,
+        "endTime": 42.387
+      },
+      {
+        "word": "and",
+        "startTime": 42.515,
+        "endTime": 42.712
+      },
+      {
+        "word": "who",
+        "startTime": 42.747,
+        "endTime": 42.84
+      },
+      {
+        "word": "think",
+        "startTime": 42.898,
+        "endTime": 43.084
+      },
+      {
+        "word": "they",
+        "startTime": 43.142,
+        "endTime": 43.258
+      },
+      {
+        "word": "were",
+        "startTime": 43.293,
+        "endTime": 43.421
+      },
+      {
+        "word": "happy,",
+        "startTime": 43.467,
+        "endTime": 43.873
+      },
+      {
+        "word": "that",
+        "startTime": 43.931,
+        "endTime": 44.14
+      },
+      {
+        "word": "time.",
+        "startTime": 44.198,
+        "endTime": 44.953
+      }
+    ]
+  }
+]

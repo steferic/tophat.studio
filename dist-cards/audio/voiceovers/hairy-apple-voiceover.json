@@ -1,0 +1,461 @@
+[
+  {
+    "text": "Imagine trying to comb an apple so every hair lies flat.",
+    "startTime": 0,
+    "endTime": 3.379,
+    "words": [
+      {
+        "word": "Imagine",
+        "startTime": 0,
+        "endTime": 0.464
+      },
+      {
+        "word": "trying",
+        "startTime": 0.499,
+        "endTime": 0.743
+      },
+      {
+        "word": "to",
+        "startTime": 0.778,
+        "endTime": 0.824
+      },
+      {
+        "word": "comb",
+        "startTime": 0.894,
+        "endTime": 1.103
+      },
+      {
+        "word": "an",
+        "startTime": 1.138,
+        "endTime": 1.196
+      },
+      {
+        "word": "apple",
+        "startTime": 1.231,
+        "endTime": 1.649
+      },
+      {
+        "word": "so",
+        "startTime": 1.765,
+        "endTime": 1.916
+      },
+      {
+        "word": "every",
+        "startTime": 1.997,
+        "endTime": 2.252
+      },
+      {
+        "word": "hair",
+        "startTime": 2.322,
+        "endTime": 2.519
+      },
+      {
+        "word": "lies",
+        "startTime": 2.589,
+        "endTime": 2.821
+      },
+      {
+        "word": "flat.",
+        "startTime": 2.879,
+        "endTime": 3.379
+      }
+    ]
+  },
+  {
+    "text": "No matter how hard you try, there will always be at least one spot where the hair sticks straight up —",
+    "startTime": 3.889,
+    "endTime": 9.23,
+    "words": [
+      {
+        "word": "No",
+        "startTime": 3.889,
+        "endTime": 4.017
+      },
+      {
+        "word": "matter",
+        "startTime": 4.063,
+        "endTime": 4.296
+      },
+      {
+        "word": "how",
+        "startTime": 4.354,
+        "endTime": 4.493
+      },
+      {
+        "word": "hard",
+        "startTime": 4.574,
+        "endTime": 4.783
+      },
+      {
+        "word": "you",
+        "startTime": 4.83,
+        "endTime": 4.911
+      },
+      {
+        "word": "try,",
+        "startTime": 4.981,
+        "endTime": 5.445
+      },
+      {
+        "word": "there",
+        "startTime": 5.526,
+        "endTime": 5.677
+      },
+      {
+        "word": "will",
+        "startTime": 5.7,
+        "endTime": 5.828
+      },
+      {
+        "word": "always",
+        "startTime": 5.886,
+        "endTime": 6.165
+      },
+      {
+        "word": "be",
+        "startTime": 6.211,
+        "endTime": 6.316
+      },
+      {
+        "word": "at",
+        "startTime": 6.362,
+        "endTime": 6.432
+      },
+      {
+        "word": "least",
+        "startTime": 6.478,
+        "endTime": 6.676
+      },
+      {
+        "word": "one",
+        "startTime": 6.757,
+        "endTime": 7.001
+      },
+      {
+        "word": "spot",
+        "startTime": 7.047,
+        "endTime": 7.384
+      },
+      {
+        "word": "where",
+        "startTime": 7.43,
+        "endTime": 7.605
+      },
+      {
+        "word": "the",
+        "startTime": 7.628,
+        "endTime": 7.697
+      },
+      {
+        "word": "hair",
+        "startTime": 7.767,
+        "endTime": 7.964
+      },
+      {
+        "word": "sticks",
+        "startTime": 8.034,
+        "endTime": 8.348
+      },
+      {
+        "word": "straight",
+        "startTime": 8.371,
+        "endTime": 8.684
+      },
+      {
+        "word": "up",
+        "startTime": 8.742,
+        "endTime": 8.928
+      },
+      {
+        "word": "—",
+        "startTime": 9.137,
+        "endTime": 9.23
+      }
+    ]
+  },
+  {
+    "text": "a cowlick.",
+    "startTime": 9.311,
+    "endTime": 10.077,
+    "words": [
+      {
+        "word": "a",
+        "startTime": 9.311,
+        "endTime": 9.369
+      },
+      {
+        "word": "cowlick.",
+        "startTime": 9.451,
+        "endTime": 10.077
+      }
+    ]
+  },
+  {
+    "text": "This is the hairy ball theorem.",
+    "startTime": 10.519,
+    "endTime": 12.19,
+    "words": [
+      {
+        "word": "This",
+        "startTime": 10.519,
+        "endTime": 10.716
+      },
+      {
+        "word": "is",
+        "startTime": 10.774,
+        "endTime": 10.855
+      },
+      {
+        "word": "the",
+        "startTime": 10.902,
+        "endTime": 10.971
+      },
+      {
+        "word": "hairy",
+        "startTime": 11.041,
+        "endTime": 11.343
+      },
+      {
+        "word": "ball",
+        "startTime": 11.401,
+        "endTime": 11.622
+      },
+      {
+        "word": "theorem.",
+        "startTime": 11.691,
+        "endTime": 12.19
+      }
+    ]
+  },
+  {
+    "text": "Mathematically, it says any continuous tangent vector field on a sphere must have at least one point where the vector is zero.",
+    "startTime": 12.434,
+    "endTime": 19.307,
+    "words": [
+      {
+        "word": "Mathematically,",
+        "startTime": 12.434,
+        "endTime": 13.247
+      },
+      {
+        "word": "it",
+        "startTime": 13.282,
+        "endTime": 13.398
+      },
+      {
+        "word": "says",
+        "startTime": 13.444,
+        "endTime": 13.63
+      },
+      {
+        "word": "any",
+        "startTime": 13.711,
+        "endTime": 13.932
+      },
+      {
+        "word": "continuous",
+        "startTime": 13.99,
+        "endTime": 14.547
+      },
+      {
+        "word": "tangent",
+        "startTime": 14.594,
+        "endTime": 15
+      },
+      {
+        "word": "vector",
+        "startTime": 15.058,
+        "endTime": 15.372
+      },
+      {
+        "word": "field",
+        "startTime": 15.418,
+        "endTime": 15.697
+      },
+      {
+        "word": "on",
+        "startTime": 15.766,
+        "endTime": 15.859
+      },
+      {
+        "word": "a",
+        "startTime": 15.906,
+        "endTime": 15.929
+      },
+      {
+        "word": "sphere",
+        "startTime": 15.987,
+        "endTime": 16.463
+      },
+      {
+        "word": "must",
+        "startTime": 16.614,
+        "endTime": 16.811
+      },
+      {
+        "word": "have",
+        "startTime": 16.846,
+        "endTime": 16.962
+      },
+      {
+        "word": "at",
+        "startTime": 16.985,
+        "endTime": 17.043
+      },
+      {
+        "word": "least",
+        "startTime": 17.09,
+        "endTime": 17.264
+      },
+      {
+        "word": "one",
+        "startTime": 17.345,
+        "endTime": 17.554
+      },
+      {
+        "word": "point",
+        "startTime": 17.601,
+        "endTime": 17.856
+      },
+      {
+        "word": "where",
+        "startTime": 17.903,
+        "endTime": 18.065
+      },
+      {
+        "word": "the",
+        "startTime": 18.088,
+        "endTime": 18.158
+      },
+      {
+        "word": "vector",
+        "startTime": 18.204,
+        "endTime": 18.529
+      },
+      {
+        "word": "is",
+        "startTime": 18.588,
+        "endTime": 18.657
+      },
+      {
+        "word": "zero.",
+        "startTime": 18.704,
+        "endTime": 19.307
+      }
+    ]
+  },
+  {
+    "text": "In nature, this explains why cyclones have an eye, and why your hair has that stubborn whorl.",
+    "startTime": 19.818,
+    "endTime": 25.263,
+    "words": [
+      {
+        "word": "In",
+        "startTime": 19.818,
+        "endTime": 19.981
+      },
+      {
+        "word": "nature,",
+        "startTime": 20.05,
+        "endTime": 20.596
+      },
+      {
+        "word": "this",
+        "startTime": 20.689,
+        "endTime": 20.863
+      },
+      {
+        "word": "explains",
+        "startTime": 20.921,
+        "endTime": 21.351
+      },
+      {
+        "word": "why",
+        "startTime": 21.386,
+        "endTime": 21.536
+      },
+      {
+        "word": "cyclones",
+        "startTime": 21.594,
+        "endTime": 22.14
+      },
+      {
+        "word": "have",
+        "startTime": 22.175,
+        "endTime": 22.303
+      },
+      {
+        "word": "an",
+        "startTime": 22.338,
+        "endTime": 22.396
+      },
+      {
+        "word": "eye,",
+        "startTime": 22.465,
+        "endTime": 22.895
+      },
+      {
+        "word": "and",
+        "startTime": 23.046,
+        "endTime": 23.185
+      },
+      {
+        "word": "why",
+        "startTime": 23.231,
+        "endTime": 23.359
+      },
+      {
+        "word": "your",
+        "startTime": 23.429,
+        "endTime": 23.557
+      },
+      {
+        "word": "hair",
+        "startTime": 23.626,
+        "endTime": 23.847
+      },
+      {
+        "word": "has",
+        "startTime": 23.905,
+        "endTime": 24.044
+      },
+      {
+        "word": "that",
+        "startTime": 24.091,
+        "endTime": 24.23
+      },
+      {
+        "word": "stubborn",
+        "startTime": 24.3,
+        "endTime": 24.671
+      },
+      {
+        "word": "whorl.",
+        "startTime": 24.729,
+        "endTime": 25.263
+      }
+    ]
+  },
+  {
+    "text": "Topology guarantees it.",
+    "startTime": 25.704,
+    "endTime": 27.446,
+    "words": [
+      {
+        "word": "Topology",
+        "startTime": 25.704,
+        "endTime": 26.308
+      },
+      {
+        "word": "guarantees",
+        "startTime": 26.366,
+        "endTime": 26.935
+      },
+      {
+        "word": "it.",
+        "startTime": 27.005,
+        "endTime": 27.446
+      }
+    ]
+  }
+]

@@ -1,0 +1,588 @@
+[
+  {
+    "text": "Behold, the yoinky sploinky.",
+    "startTime": 0,
+    "endTime": 1.985,
+    "words": [
+      {
+        "word": "Behold,",
+        "startTime": 0,
+        "endTime": 0.546
+      },
+      {
+        "word": "the",
+        "startTime": 0.592,
+        "endTime": 0.697
+      },
+      {
+        "word": "yoinky",
+        "startTime": 0.778,
+        "endTime": 1.173
+      },
+      {
+        "word": "sploinky.",
+        "startTime": 1.231,
+        "endTime": 1.985
+      }
+    ]
+  },
+  {
+    "text": "Nobody knows who invented it.",
+    "startTime": 2.496,
+    "endTime": 4.005,
+    "words": [
+      {
+        "word": "Nobody",
+        "startTime": 2.496,
+        "endTime": 2.81
+      },
+      {
+        "word": "knows",
+        "startTime": 2.856,
+        "endTime": 3.077
+      },
+      {
+        "word": "who",
+        "startTime": 3.111,
+        "endTime": 3.204
+      },
+      {
+        "word": "invented",
+        "startTime": 3.274,
+        "endTime": 3.68
+      },
+      {
+        "word": "it.",
+        "startTime": 3.738,
+        "endTime": 4.005
+      }
+    ]
+  },
+  {
+    "text": "Some say it was Gerald, a man who dropped his sandwich and watched it bounce weird.",
+    "startTime": 4.249,
+    "endTime": 8.916,
+    "words": [
+      {
+        "word": "Some",
+        "startTime": 4.249,
+        "endTime": 4.493
+      },
+      {
+        "word": "say",
+        "startTime": 4.54,
+        "endTime": 4.725
+      },
+      {
+        "word": "it",
+        "startTime": 4.772,
+        "endTime": 4.841
+      },
+      {
+        "word": "was",
+        "startTime": 4.876,
+        "endTime": 4.981
+      },
+      {
+        "word": "Gerald,",
+        "startTime": 5.05,
+        "endTime": 5.631
+      },
+      {
+        "word": "a",
+        "startTime": 5.875,
+        "endTime": 5.933
+      },
+      {
+        "word": "man",
+        "startTime": 6.014,
+        "endTime": 6.188
+      },
+      {
+        "word": "who",
+        "startTime": 6.223,
+        "endTime": 6.316
+      },
+      {
+        "word": "dropped",
+        "startTime": 6.374,
+        "endTime": 6.641
+      },
+      {
+        "word": "his",
+        "startTime": 6.676,
+        "endTime": 6.769
+      },
+      {
+        "word": "sandwich",
+        "startTime": 6.815,
+        "endTime": 7.268
+      },
+      {
+        "word": "and",
+        "startTime": 7.314,
+        "endTime": 7.442
+      },
+      {
+        "word": "watched",
+        "startTime": 7.5,
+        "endTime": 7.779
+      },
+      {
+        "word": "it",
+        "startTime": 7.825,
+        "endTime": 7.895
+      },
+      {
+        "word": "bounce",
+        "startTime": 7.964,
+        "endTime": 8.324
+      },
+      {
+        "word": "weird.",
+        "startTime": 8.382,
+        "endTime": 8.916
+      }
+    ]
+  },
+  {
+    "text": "Others credit Brenda from accounting, who sneezed near a computer in 1987.",
+    "startTime": 9.52,
+    "endTime": 14.536,
+    "words": [
+      {
+        "word": "Others",
+        "startTime": 9.52,
+        "endTime": 9.857
+      },
+      {
+        "word": "credit",
+        "startTime": 9.927,
+        "endTime": 10.252
+      },
+      {
+        "word": "Brenda",
+        "startTime": 10.31,
+        "endTime": 10.635
+      },
+      {
+        "word": "from",
+        "startTime": 10.681,
+        "endTime": 10.809
+      },
+      {
+        "word": "accounting,",
+        "startTime": 10.855,
+        "endTime": 11.575
+      },
+      {
+        "word": "who",
+        "startTime": 11.633,
+        "endTime": 11.796
+      },
+      {
+        "word": "sneezed",
+        "startTime": 11.877,
+        "endTime": 12.341
+      },
+      {
+        "word": "near",
+        "startTime": 12.399,
+        "endTime": 12.574
+      },
+      {
+        "word": "a",
+        "startTime": 12.608,
+        "endTime": 12.632
+      },
+      {
+        "word": "computer",
+        "startTime": 12.678,
+        "endTime": 13.201
+      },
+      {
+        "word": "in",
+        "startTime": 13.259,
+        "endTime": 13.328
+      },
+      {
+        "word": "1987.",
+        "startTime": 13.386,
+        "endTime": 14.536
+      }
+    ]
+  },
+  {
+    "text": "Watch these particles - they bounce, they stretch, they do whatever they want.",
+    "startTime": 14.977,
+    "endTime": 19.678,
+    "words": [
+      {
+        "word": "Watch",
+        "startTime": 14.977,
+        "endTime": 15.243
+      },
+      {
+        "word": "these",
+        "startTime": 15.301,
+        "endTime": 15.499
+      },
+      {
+        "word": "particles",
+        "startTime": 15.545,
+        "endTime": 16.149
+      },
+      {
+        "word": "-",
+        "startTime": 16.358,
+        "endTime": 16.416
+      },
+      {
+        "word": "they",
+        "startTime": 16.532,
+        "endTime": 16.695
+      },
+      {
+        "word": "bounce,",
+        "startTime": 16.753,
+        "endTime": 17.287
+      },
+      {
+        "word": "they",
+        "startTime": 17.38,
+        "endTime": 17.542
+      },
+      {
+        "word": "stretch,",
+        "startTime": 17.6,
+        "endTime": 18.169
+      },
+      {
+        "word": "they",
+        "startTime": 18.343,
+        "endTime": 18.494
+      },
+      {
+        "word": "do",
+        "startTime": 18.564,
+        "endTime": 18.657
+      },
+      {
+        "word": "whatever",
+        "startTime": 18.703,
+        "endTime": 18.993
+      },
+      {
+        "word": "they",
+        "startTime": 19.04,
+        "endTime": 19.156
+      },
+      {
+        "word": "want.",
+        "startTime": 19.214,
+        "endTime": 19.678
+      }
+    ]
+  },
+  {
+    "text": "One goes yoink.",
+    "startTime": 20.189,
+    "endTime": 21.199,
+    "words": [
+      {
+        "word": "One",
+        "startTime": 20.189,
+        "endTime": 20.421
+      },
+      {
+        "word": "goes",
+        "startTime": 20.468,
+        "endTime": 20.689
+      },
+      {
+        "word": "yoink.",
+        "startTime": 20.758,
+        "endTime": 21.199
+      }
+    ]
+  },
+  {
+    "text": "The other goes sploinky.",
+    "startTime": 21.257,
+    "endTime": 22.627,
+    "words": [
+      {
+        "word": "The",
+        "startTime": 21.257,
+        "endTime": 21.374
+      },
+      {
+        "word": "other",
+        "startTime": 21.432,
+        "endTime": 21.617
+      },
+      {
+        "word": "goes",
+        "startTime": 21.687,
+        "endTime": 21.873
+      },
+      {
+        "word": "sploinky.",
+        "startTime": 21.919,
+        "endTime": 22.627
+      }
+    ]
+  },
+  {
+    "text": "My uncle Gary tried to explain it once but he just made helicopter noises for ten minutes.",
+    "startTime": 23.069,
+    "endTime": 27.945,
+    "words": [
+      {
+        "word": "My",
+        "startTime": 23.069,
+        "endTime": 23.208
+      },
+      {
+        "word": "uncle",
+        "startTime": 23.289,
+        "endTime": 23.556
+      },
+      {
+        "word": "Gary",
+        "startTime": 23.603,
+        "endTime": 23.916
+      },
+      {
+        "word": "tried",
+        "startTime": 23.963,
+        "endTime": 24.172
+      },
+      {
+        "word": "to",
+        "startTime": 24.195,
+        "endTime": 24.253
+      },
+      {
+        "word": "explain",
+        "startTime": 24.322,
+        "endTime": 24.706
+      },
+      {
+        "word": "it",
+        "startTime": 24.752,
+        "endTime": 24.833
+      },
+      {
+        "word": "once",
+        "startTime": 24.903,
+        "endTime": 25.321
+      },
+      {
+        "word": "but",
+        "startTime": 25.414,
+        "endTime": 25.565
+      },
+      {
+        "word": "he",
+        "startTime": 25.588,
+        "endTime": 25.634
+      },
+      {
+        "word": "just",
+        "startTime": 25.692,
+        "endTime": 25.855
+      },
+      {
+        "word": "made",
+        "startTime": 25.901,
+        "endTime": 26.076
+      },
+      {
+        "word": "helicopter",
+        "startTime": 26.122,
+        "endTime": 26.621
+      },
+      {
+        "word": "noises",
+        "startTime": 26.679,
+        "endTime": 27.039
+      },
+      {
+        "word": "for",
+        "startTime": 27.086,
+        "endTime": 27.19
+      },
+      {
+        "word": "ten",
+        "startTime": 27.225,
+        "endTime": 27.387
+      },
+      {
+        "word": "minutes.",
+        "startTime": 27.446,
+        "endTime": 27.945
+      }
+    ]
+  },
+  {
+    "text": "The particles don't care about your rules.",
+    "startTime": 28.386,
+    "endTime": 30.591,
+    "words": [
+      {
+        "word": "The",
+        "startTime": 28.386,
+        "endTime": 28.502
+      },
+      {
+        "word": "particles",
+        "startTime": 28.56,
+        "endTime": 29.024
+      },
+      {
+        "word": "don't",
+        "startTime": 29.071,
+        "endTime": 29.268
+      },
+      {
+        "word": "care",
+        "startTime": 29.314,
+        "endTime": 29.57
+      },
+      {
+        "word": "about",
+        "startTime": 29.605,
+        "endTime": 29.825
+      },
+      {
+        "word": "your",
+        "startTime": 29.872,
+        "endTime": 29.999
+      },
+      {
+        "word": "rules.",
+        "startTime": 30.057,
+        "endTime": 30.591
+      }
+    ]
+  },
+  {
+    "text": "They don't care about anything.",
+    "startTime": 30.87,
+    "endTime": 32.275,
+    "words": [
+      {
+        "word": "They",
+        "startTime": 30.87,
+        "endTime": 31.009
+      },
+      {
+        "word": "don't",
+        "startTime": 31.044,
+        "endTime": 31.207
+      },
+      {
+        "word": "care",
+        "startTime": 31.253,
+        "endTime": 31.485
+      },
+      {
+        "word": "about",
+        "startTime": 31.509,
+        "endTime": 31.729
+      },
+      {
+        "word": "anything.",
+        "startTime": 31.776,
+        "endTime": 32.275
+      }
+    ]
+  },
+  {
+    "text": "They just yoink and sploinky all day long.",
+    "startTime": 32.403,
+    "endTime": 34.643,
+    "words": [
+      {
+        "word": "They",
+        "startTime": 32.403,
+        "endTime": 32.553
+      },
+      {
+        "word": "just",
+        "startTime": 32.6,
+        "endTime": 32.751
+      },
+      {
+        "word": "yoink",
+        "startTime": 32.82,
+        "endTime": 33.111
+      },
+      {
+        "word": "and",
+        "startTime": 33.169,
+        "endTime": 33.25
+      },
+      {
+        "word": "sploinky",
+        "startTime": 33.32,
+        "endTime": 33.784
+      },
+      {
+        "word": "all",
+        "startTime": 33.842,
+        "endTime": 34.005
+      },
+      {
+        "word": "day",
+        "startTime": 34.051,
+        "endTime": 34.19
+      },
+      {
+        "word": "long.",
+        "startTime": 34.249,
+        "endTime": 34.643
+      }
+    ]
+  },
+  {
+    "text": "And honestly?",
+    "startTime": 34.817,
+    "endTime": 35.618,
+    "words": [
+      {
+        "word": "And",
+        "startTime": 34.817,
+        "endTime": 34.957
+      },
+      {
+        "word": "honestly?",
+        "startTime": 35.015,
+        "endTime": 35.618
+      }
+    ]
+  },
+  {
+    "text": "Good for them.",
+    "startTime": 35.862,
+    "endTime": 36.826,
+    "words": [
+      {
+        "word": "Good",
+        "startTime": 35.862,
+        "endTime": 36.06
+      },
+      {
+        "word": "for",
+        "startTime": 36.094,
+        "endTime": 36.187
+      },
+      {
+        "word": "them.",
+        "startTime": 36.234,
+        "endTime": 36.826
+      }
+    ]
+  }
+]

@@ -10,7 +10,9 @@
     "storyboard": "vite --config vite.storyboard.config.ts",
     "storyboard:build": "vite build --config vite.storyboard.config.ts",
     "editor": "vite --config vite.editor.config.ts",
-    "editor:build": "vite build --config vite.editor.config.ts"
+    "editor:build": "vite build --config vite.editor.config.ts",
+    "cards": "vite --config vite.config.cards.ts",
+    "cards:build": "vite build --config vite.config.cards.ts"
   },
   "dependencies": {
     "@google/genai": "^1.40.0",

@@ -1,0 +1,212 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Lorenz Attractor Demo",
+    "description": "Multiple spheres following Lorenz attractor paths with offset",
+    "duration": 600,
+    "fps": 60,
+    "width": 1920,
+    "height": 1080,
+    "author": "Scene Editor",
+    "createdAt": "2025-01-25T00:00:00.000Z"
+  },
+  "environment": {
+    "background": "#0f0f1a",
+    "ambientLight": {
+      "color": "#ffffff",
+      "intensity": 0.3
+    },
+    "fog": {
+      "color": "#0f0f1a",
+      "near": 100,
+      "far": 400
+    }
+  },
+  "camera": {
+    "type": "static",
+    "fov": 50,
+    "position": [0, 0, 200],
+    "lookAt": [0, 0, 0]
+  },
+  "lights": [
+    {
+      "id": "main-light",
+      "type": "directional",
+      "color": "#ffffff",
+      "intensity": 1.5,
+      "position": [50, 50, 50],
+      "castShadow": true
+    },
+    {
+      "id": "fill-light",
+      "type": "directional",
+      "color": "#6366f1",
+      "intensity": 0.5,
+      "position": [-30, 20, -30]
+    },
+    {
+      "id": "accent-point",
+      "type": "point",
+      "color": "#f472b6",
+      "intensity": 2,
+      "position": [0, 0, 0],
+      "distance": 100
+    }
+  ],
+  "objects": [
+    {
+      "id": "sphere-1",
+      "name": "Lead Sphere",
+      "type": "primitive",
+      "primitiveType": "sphere",
+      "primitiveProps": {
+        "radius": 3,
+        "segments": 32,
+        "color": "#6366f1"
+      },
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "motion": {
+        "pathType": "lorenz",
+        "pathParams": {
+          "sigma": 10,
+          "rho": 28,
+          "beta": 2.667,
+          "scale": 6
+        },
+        "speed": 1,
+        "progressOffset": 0,
+        "loop": "loop",
+        "modifiers": [
+          {
+            "type": "rotation",
+            "params": {
+              "speedX": 0.5,
+              "speedY": 0.8,
+              "speedZ": 0.3
+            }
+          },
+          {
+            "type": "scalePulse",
+            "params": {
+              "minScale": 0.9,
+              "maxScale": 1.1,
+              "frequency": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "sphere-2",
+      "name": "Follow Sphere 1",
+      "type": "primitive",
+      "primitiveType": "sphere",
+      "primitiveProps": {
+        "radius": 2,
+        "segments": 24,
+        "color": "#8b5cf6"
+      },
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "motion": {
+        "pathType": "lorenz",
+        "pathParams": {
+          "sigma": 10,
+          "rho": 28,
+          "beta": 2.667,
+          "scale": 6
+        },
+        "speed": 1,
+        "progressOffset": 0.05,
+        "loop": "loop",
+        "modifiers": [
+          {
+            "type": "rotation",
+            "params": {
+              "speedX": 0.7,
+              "speedY": 0.5,
+              "speedZ": 0.4
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "sphere-3",
+      "name": "Follow Sphere 2",
+      "type": "primitive",
+      "primitiveType": "sphere",
+      "primitiveProps": {
+        "radius": 1.5,
+        "segments": 24,
+        "color": "#a78bfa"
+      },
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "motion": {
+        "pathType": "lorenz",
+        "pathParams": {
+          "sigma": 10,
+          "rho": 28,
+          "beta": 2.667,
+          "scale": 6
+        },
+        "speed": 1,
+        "progressOffset": 0.1,
+        "loop": "loop",
+        "modifiers": []
+      }
+    },
+    {
+      "id": "orbiter",
+      "name": "Orbiting Cube",
+      "type": "primitive",
+      "primitiveType": "box",
+      "primitiveProps": {
+        "width": 5,
+        "height": 5,
+        "depth": 5,
+        "color": "#f472b6",
+        "wireframe": true
+      },
+      "transform": {
+        "position": [0, 0, 0],
+        "rotation": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "motion": {
+        "pathType": "circular",
+        "pathParams": {
+          "radiusX": 80,
+          "radiusY": 80,
+          "tiltX": 0.3,
+          "heightAmplitude": 20,
+          "heightFrequency": 2
+        },
+        "speed": 0.3,
+        "progressOffset": 0,
+        "loop": "loop",
+        "modifiers": [
+          {
+            "type": "rotation",
+            "params": {
+              "speedX": 0.2,
+              "speedY": 0.3,
+              "speedZ": 0.1
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

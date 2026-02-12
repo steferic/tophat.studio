@@ -1,0 +1,11 @@
+{
+  "prompt": "a tiny purple star on black background",
+  "model": "gpt-image-1",
+  "generatedAt": "2026-02-08T00:45:54.224Z",
+  "type": "image",
+  "fileSize": 750821,
+  "params": {
+    "size": "1024x1024",
+    "quality": "low"
+  }
+}
