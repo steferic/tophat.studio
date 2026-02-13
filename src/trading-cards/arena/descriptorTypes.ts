@@ -1,5 +1,8 @@
 import type React from 'react';
+import type * as THREE from 'three';
 import type { CardData } from '../types';
+import type { CardTheme } from '../styles/cardTheme';
+import type { DeepPartial } from '../styles/typePresets';
 
 // ── Card Shake ─────────────────────────────────────────────
 
@@ -139,11 +142,21 @@ export interface AttackEffectConfig {
 
 // ── Model Config ────────────────────────────────────────────
 
+export interface DanceSongDescriptor {
+  filePath: string;
+  volume?: number;
+}
+
 export interface ModelComponentProps {
   activeAttack: string | null;
   hitReaction: 'hit-light' | 'hit-heavy' | null;
   isCubed: boolean;
+  isDancing: boolean;
+  isEvolving: boolean;
+  isEvolved: boolean;
   debug: boolean;
+  /** Ref exposed so external effects (ghost clone) can track the animated group */
+  animatedGroupRef?: React.MutableRefObject<THREE.Group | null>;
 }
 
 export interface ModelConfig {
@@ -169,4 +182,8 @@ export interface CardDefinition {
   artBackground?: string;
   /** Disable holographic shimmer overlays on this card */
   disableHolo?: boolean;
+  /** Theme overrides (highest-priority merge layer) */
+  themeOverride?: DeepPartial<CardTheme>;
+  /** Song that plays when the card dances */
+  danceSong?: DanceSongDescriptor;
 }

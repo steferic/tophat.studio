@@ -34,8 +34,9 @@ function darkenClone(original: THREE.Object3D): THREE.Object3D {
 const TROPHY_ORBIT_RADIUS = 3.5;
 const TROPHY_SCALE = 0.25;
 
-export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReaction, isCubed, debug }) => {
+export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReaction, isCubed, isDancing, isEvolving: _isEvolving, isEvolved: _isEvolved, debug, animatedGroupRef }) => {
   const groupRef = useRef<THREE.Group>(null!);
+  if (animatedGroupRef) animatedGroupRef.current = groupRef.current;
   const cloneGroupRefs = useRef<(THREE.Group | null)[]>([]);
   const appleRef = useRef<THREE.Group>(null!);
   const fishRef = useRef<THREE.Group>(null!);
@@ -199,6 +200,18 @@ export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hi
         groupRef.current.position.x = Math.sin(t * 3) * 1.2;
         groupRef.current.position.y = Math.sin(t * 2.3) * 0.8;
         groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.1);
+        return;
+      }
+
+      // Dance: menacing headbang with lurching side steps
+      if (isDancing) {
+        const lurch = Math.sin(t * 3) * 2;
+        groupRef.current.position.x = lurch;
+        groupRef.current.position.y = Math.abs(Math.sin(t * 6)) * 1.5;
+        groupRef.current.rotation.y = Math.sin(t * 3) * 0.5;
+        groupRef.current.rotation.x = Math.sin(t * 6) * 0.35;
+        groupRef.current.rotation.z = Math.cos(t * 3) * 0.2;
+        groupRef.current.scale.setScalar(BASE_SCALE + Math.sin(t * 6) * 1);
         return;
       }
 

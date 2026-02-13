@@ -1,5 +1,6 @@
 import React from 'react';
 import { energyEmoji } from '../styles/holo';
+import { useCardTheme } from '../styles/CardThemeContext';
 import type { AttackData } from '../types';
 
 interface AttackRowProps {
@@ -9,6 +10,8 @@ interface AttackRowProps {
 }
 
 export const AttackRow: React.FC<AttackRowProps> = ({ attack, isActive, disabled }) => {
+  const theme = useCardTheme();
+
   return (
     <div
       style={{
@@ -20,7 +23,7 @@ export const AttackRow: React.FC<AttackRowProps> = ({ attack, isActive, disabled
         borderRadius: 3,
         position: 'relative',
         zIndex: 1,
-        background: isActive ? 'rgba(74,158,201,0.2)' : 'transparent',
+        background: isActive ? theme.attacks.activeHighlight : 'transparent',
         opacity: disabled ? 0.4 : 1,
         pointerEvents: disabled ? 'none' : 'auto',
       }}
@@ -37,10 +40,10 @@ export const AttackRow: React.FC<AttackRowProps> = ({ attack, isActive, disabled
       <div style={{ flex: 1 }}>
         <span
           style={{
-            fontFamily: 'Georgia, serif',
+            fontFamily: theme.attacks.fontFamily,
             fontSize: 12,
             fontWeight: 700,
-            color: '#1a1a1a',
+            color: theme.attacks.nameColor,
           }}
         >
           {attack.name}
@@ -48,7 +51,7 @@ export const AttackRow: React.FC<AttackRowProps> = ({ attack, isActive, disabled
         <p
           style={{
             fontSize: 7.5,
-            color: '#666',
+            color: theme.attacks.descriptionColor,
             margin: '1px 0 0',
             lineHeight: 1.3,
           }}
@@ -59,10 +62,10 @@ export const AttackRow: React.FC<AttackRowProps> = ({ attack, isActive, disabled
       {/* Damage */}
       <span
         style={{
-          fontFamily: 'Georgia, serif',
+          fontFamily: theme.attacks.fontFamily,
           fontSize: 20,
           fontWeight: 700,
-          color: '#1a1a1a',
+          color: theme.attacks.damageColor,
           minWidth: 28,
           textAlign: 'right',
         }}
@@ -73,13 +76,17 @@ export const AttackRow: React.FC<AttackRowProps> = ({ attack, isActive, disabled
   );
 };
 
-export const AttackDivider: React.FC = () => (
-  <div
-    style={{
-      height: 1,
-      background: 'rgba(0,0,0,0.1)',
-      position: 'relative',
-      zIndex: 1,
-    }}
-  />
-);
+export const AttackDivider: React.FC = () => {
+  const theme = useCardTheme();
+
+  return (
+    <div
+      style={{
+        height: 1,
+        background: theme.attacks.dividerColor,
+        position: 'relative',
+        zIndex: 1,
+      }}
+    />
+  );
+};

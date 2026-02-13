@@ -8,11 +8,15 @@ import type { ModelComponentProps } from '../arena/descriptorTypes';
 
 export type RoseAttack = 'bloom' | 'thorn-storm' | 'cube' | null;
 
-export const RoseModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReaction, isCubed, debug }) => {
+export const RoseModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReaction, isCubed, isDancing, isEvolving, isEvolved, debug, animatedGroupRef }) => {
   const groupRef = useRef<THREE.Group>(null!);
+  if (animatedGroupRef) animatedGroupRef.current = groupRef.current;
   const { scene } = useGLTF('models/rose.glb');
   const attackStart = useRef(0);
   const hitStart = useRef(0);
+  const evolveStart = useRef(0);
+
+  const targetScale = isEvolved ? 100 * 1.5 : 100;
 
   const { centerOffset, boxSize } = useModelBounds(scene);
 
@@ -25,42 +29,37 @@ export const RoseModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReac
       const elapsed = t - hitStart.current;
 
       if (hitReaction === 'hit-light') {
-        // Quick flinch/shake (~400ms) tuned for rose scale (100)
         const intensity = Math.max(0, 1 - elapsed * 2.5);
         const flinch = Math.sin(elapsed * 28) * intensity;
         groupRef.current.position.x = flinch * 1.2;
         groupRef.current.position.y = -Math.abs(flinch) * 0.4;
         groupRef.current.rotation.z = flinch * 0.12;
         groupRef.current.rotation.x = -0.15 * intensity;
-        const s = 100 - intensity * 8;
+        const s = targetScale - intensity * 8;
         groupRef.current.scale.setScalar(s);
       } else if (hitReaction === 'hit-heavy') {
-        // Big knockback, wilt, slow recovery (~660ms)
         const phase = Math.min(elapsed / 0.66, 1);
         if (phase < 0.3) {
-          // Knockback with wilt
           const knock = phase / 0.3;
           groupRef.current.position.x = -knock * 3;
           groupRef.current.position.y = -knock * 1.5;
           groupRef.current.rotation.z = knock * 0.4;
           groupRef.current.rotation.x = -knock * 0.35;
-          groupRef.current.scale.setScalar(100 - knock * 20);
+          groupRef.current.scale.setScalar(targetScale - knock * 20);
         } else if (phase < 0.6) {
-          // Wobble
           const wobble = (phase - 0.3) / 0.3;
           groupRef.current.position.x = -3 + wobble * 1.5;
           groupRef.current.position.y = -1.5 + Math.sin(wobble * Math.PI) * 1;
           groupRef.current.rotation.z = 0.4 - wobble * 0.25;
           groupRef.current.rotation.x = -0.35 + wobble * 0.15;
-          groupRef.current.scale.setScalar(80 + wobble * 8);
+          groupRef.current.scale.setScalar(targetScale - 20 + wobble * 8);
         } else {
-          // Slow recovery — re-bloom
           const recover = (phase - 0.6) / 0.4;
           groupRef.current.position.x = -1.5 * (1 - recover);
           groupRef.current.position.y = -0.5 * (1 - recover);
           groupRef.current.rotation.z = 0.15 * (1 - recover);
           groupRef.current.rotation.x = -0.2 * (1 - recover);
-          groupRef.current.scale.setScalar(88 + recover * 12);
+          groupRef.current.scale.setScalar(targetScale - 12 + recover * 12);
         }
       }
       return;
@@ -72,24 +71,70 @@ export const RoseModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReac
     if (!activeAttack) {
       attackStart.current = 0;
 
-      // Trapped in cube: tumble and spin helplessly
+      // Evolving animation (2.5s elegant bloom transformation)
+      if (isEvolving) {
+        if (evolveStart.current === 0) evolveStart.current = t;
+        const elapsed = t - evolveStart.current;
+
+        if (elapsed < 0.8) {
+          // Phase 1: Graceful rise, petals tightening
+          const p = elapsed / 0.8;
+          groupRef.current.rotation.y = elapsed * 3;
+          groupRef.current.position.y = p * 2.5;
+          groupRef.current.rotation.z = Math.sin(elapsed * 8) * 0.1 * p;
+          const s = 100 + Math.sin(elapsed * 6) * 5 * p;
+          groupRef.current.scale.setScalar(s);
+        } else if (elapsed < 1.8) {
+          // Phase 2: Blooming spin, scale ramps to evolved
+          const p = (elapsed - 0.8) / 1.0;
+          const ease = p * p * (3 - 2 * p);
+          groupRef.current.rotation.y = (elapsed - 0.8) * 8;
+          groupRef.current.position.y = 2.5 + Math.sin(elapsed * 4) * 0.3;
+          groupRef.current.position.x = Math.sin(elapsed * 6) * (1 - ease) * 0.5;
+          const s = 100 + ease * (150 - 100);
+          groupRef.current.scale.setScalar(s);
+        } else {
+          // Phase 3: Settle with gentle sway
+          const p = (elapsed - 1.8) / 0.7;
+          const sway = Math.sin(p * Math.PI * 2) * Math.max(0, 1 - p) * 8;
+          groupRef.current.rotation.y *= 0.95;
+          groupRef.current.position.y = (2.5 * (1 - p));
+          groupRef.current.position.x *= 0.9;
+          groupRef.current.rotation.z *= 0.9;
+          const s = 150 + sway;
+          groupRef.current.scale.setScalar(s);
+        }
+        return;
+      }
+      evolveStart.current = 0;
+
       if (isCubed) {
         groupRef.current.rotation.x += 0.06;
         groupRef.current.rotation.y += 0.09;
         groupRef.current.rotation.z += 0.04;
         groupRef.current.position.x = Math.sin(t * 3) * 0.8;
         groupRef.current.position.y = Math.sin(t * 2.3) * 0.5;
-        groupRef.current.scale.lerp(new THREE.Vector3(100, 100, 100), 0.08);
+        groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
         return;
       }
 
-      // Gentle idle sway
+      if (isDancing) {
+        groupRef.current.rotation.y = t * 3;
+        groupRef.current.position.y = Math.sin(t * 2) * 1.5 + 0.5;
+        groupRef.current.position.x = Math.sin(t * 1.5) * 1;
+        groupRef.current.rotation.z = Math.sin(t * 3) * 0.2;
+        groupRef.current.rotation.x = Math.cos(t * 2) * 0.15;
+        const s = targetScale + Math.sin(t * 4) * 8;
+        groupRef.current.scale.setScalar(s);
+        return;
+      }
+
       groupRef.current.rotation.y += 0.003;
       groupRef.current.rotation.x *= 0.95;
       groupRef.current.rotation.z = Math.sin(t * 0.8) * 0.05;
       groupRef.current.position.x *= 0.9;
       groupRef.current.position.y = Math.sin(t * 1.2) * 0.3;
-      groupRef.current.scale.lerp(new THREE.Vector3(100, 100, 100), 0.08);
+      groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
       return;
     }
 

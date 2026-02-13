@@ -1,11 +1,16 @@
 import React from 'react';
+import { useCardTheme } from '../styles/CardThemeContext';
 
 interface CardFooterProps {
   illustrator: string;
   cardNumber: string;
+  /** Slot for the dance button (or any left-side action) */
+  leftAction?: React.ReactNode;
 }
 
-export const CardFooter: React.FC<CardFooterProps> = ({ illustrator, cardNumber }) => {
+export const CardFooter: React.FC<CardFooterProps> = ({ illustrator, cardNumber, leftAction }) => {
+  const theme = useCardTheme();
+
   return (
     <div
       style={{
@@ -16,8 +21,11 @@ export const CardFooter: React.FC<CardFooterProps> = ({ illustrator, cardNumber 
         marginTop: 'auto',
       }}
     >
-      <span style={{ fontSize: 6, color: '#999' }}>Illus. {illustrator}</span>
-      <span style={{ fontSize: 7, fontWeight: 700, color: '#666' }}>{cardNumber}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        {leftAction}
+        <span style={{ fontSize: 6, color: theme.footer.illustratorColor }}>Illus. {illustrator}</span>
+      </div>
+      <span style={{ fontSize: 7, fontWeight: 700, color: theme.footer.cardNumberColor }}>{cardNumber}</span>
     </div>
   );
 };

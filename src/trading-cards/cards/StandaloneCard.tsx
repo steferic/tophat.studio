@@ -3,18 +3,20 @@ import {
   CardShell,
   CardHeader,
   ArtWindow,
-  AttackRow,
-  AttackDivider,
+  AttacksSection,
   StatsBar,
   FlavorText,
   CardFooter,
+  DanceButton,
+  EvolveButton,
 } from '../components';
 import { ModelScene } from '../effects';
-import { holoAngle, attacksShimmer, defaultCardShadow } from '../styles/holo';
 import { computeCardShake } from '../engines/cardShakeEngine';
 import { computeGlowShadow } from '../engines/glowEngine';
 import { playAttackSound, playVoiceLineFromDescriptor } from '../engines/synthEngine';
 import { getCard } from '../arena/cardRegistry';
+import { CardThemeProvider } from '../styles/CardThemeContext';
+import { resolveTheme } from '../styles/resolveTheme';
 
 function useAnimationFrame() {
   const [frame, setFrame] = useState(0);
@@ -43,9 +45,13 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
   const { definition } = entry;
   const { cardData, attackKeys, attackDurations } = definition;
 
+  const theme = resolveTheme(definition);
   const { frame, fps } = useAnimationFrame();
   const [activeAttack, setActiveAttack] = useState<string | null>(null);
   const [cardEffect, setCardEffect] = useState<string | null>(null);
+  const [isDancing, setIsDancing] = useState(false);
+  const [isEvolving, setIsEvolving] = useState(false);
+  const [isEvolved, setIsEvolved] = useState(false);
   const isAnimating = useRef(false);
   const attackStartTime = useRef(0);
   const [attackElapsed, setAttackElapsed] = useState(0);
@@ -64,9 +70,22 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
     return () => cancelAnimationFrame(id);
   }, [activeAttack]);
 
+  const handleEvolve = useCallback(() => {
+    if (isEvolving || isEvolved) return;
+    setIsDancing(false);
+    setIsEvolving(true);
+    setTimeout(() => {
+      setIsEvolving(false);
+      setIsEvolved(true);
+    }, 2500);
+  }, [isEvolving, isEvolved]);
+
   const triggerAttack = useCallback(
     (attack: string) => {
       if (isAnimating.current || !attack) return;
+      // Stop dancing and evolving when an attack is triggered
+      setIsDancing(false);
+      setIsEvolving(false);
       isAnimating.current = true;
       attackStartTime.current = performance.now();
       setActiveAttack(attack);
@@ -90,7 +109,7 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
 
   // Card-level effects from engines
   let cardTransform: string | undefined;
-  let cardShadow = defaultCardShadow;
+  let cardShadow: string | undefined;
 
   if (cardEffect) {
     const config = definition.attackEffects[cardEffect];
@@ -105,8 +124,6 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
     }
   }
 
-  const attacksAngle = holoAngle(frame, fps, 0.83);
-
   return (
     <div
       style={{
@@ -118,86 +135,67 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
         background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0d0d1a 100%)',
       }}
     >
-      <CardShell frame={frame} fps={fps} boxShadow={cardShadow} transform={cardTransform} disableHolo={definition.disableHolo}>
-        <CardHeader
-          frame={frame}
-          fps={fps}
-          stage={cardData.stage}
-          name={cardData.name}
-          hp={cardData.hp}
-          type={cardData.type}
-          disableHolo={definition.disableHolo}
-        />
+      <CardThemeProvider theme={theme}>
+        <CardShell frame={frame} fps={fps} boxShadow={cardShadow} transform={cardTransform}>
+          <CardHeader
+            frame={frame}
+            fps={fps}
+            stage={cardData.stage}
+            name={cardData.name}
+            hp={cardData.hp}
+            type={cardData.type}
+          />
 
-        <ArtWindow
-          frame={frame}
-          fps={fps}
-          activeAttack={activeAttack}
-          attackElapsed={attackElapsed}
-          interactive
-          cameraId={definition.cameraId}
-          artGlowDescriptor={activeAttack ? definition.attackEffects[activeAttack]?.artGlow : undefined}
-          artBackground={definition.artBackground}
-          disableHolo={definition.disableHolo}
-          cameraMovement={activeAttack ? definition.attackEffects[activeAttack]?.camera : undefined}
-        >
-          <ModelScene definition={definition} activeAttack={activeAttack} debug />
-        </ArtWindow>
+          <ArtWindow
+            frame={frame}
+            fps={fps}
+            activeAttack={activeAttack}
+            attackElapsed={attackElapsed}
+            interactive
+            cameraId={definition.cameraId}
+            artGlowDescriptor={activeAttack ? definition.attackEffects[activeAttack]?.artGlow : undefined}
+            cameraMovement={activeAttack ? definition.attackEffects[activeAttack]?.camera : undefined}
+          >
+            <ModelScene definition={definition} activeAttack={activeAttack} isDancing={isDancing} isEvolving={isEvolving} isEvolved={isEvolved} debug />
+          </ArtWindow>
 
-        {/* Attacks section */}
-        <div
-          style={{
-            background: 'rgba(245,242,230,0.7)',
-            border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: 3,
-            padding: '4px 8px',
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            gap: 0,
-            position: 'relative',
-            overflow: 'hidden',
-          }}
-        >
-          {!definition.disableHolo && (
-            <div
-              style={{
-                position: 'absolute',
-                inset: '-80%',
-                background: attacksShimmer(attacksAngle),
-                pointerEvents: 'none',
-                zIndex: 0,
-              }}
-            />
-          )}
-          {cardData.attacks.map((atk, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <AttackDivider />}
-              <div
-                onClick={() => triggerAttack(attackKeys[i])}
-                style={{ cursor: 'pointer' }}
-              >
-                <AttackRow
-                  attack={atk}
-                  isActive={activeAttack === attackKeys[i]}
+          <AttacksSection
+            frame={frame}
+            fps={fps}
+            attacks={cardData.attacks}
+            attackKeys={attackKeys}
+            activeAttack={activeAttack}
+            onClickAttack={triggerAttack}
+          />
+
+          <StatsBar
+            frame={frame}
+            fps={fps}
+            weakness={cardData.weakness}
+            resistance={cardData.resistance}
+            retreatCost={cardData.retreatCost}
+          />
+          <FlavorText frame={frame} fps={fps} text={cardData.flavorText} />
+          <CardFooter
+            illustrator={cardData.illustrator}
+            cardNumber={cardData.cardNumber}
+            leftAction={
+              <>
+                <DanceButton
+                  danceSong={definition.danceSong}
+                  isDancing={isDancing}
+                  onToggle={setIsDancing}
                 />
-              </div>
-            </React.Fragment>
-          ))}
-        </div>
-
-        <StatsBar
-          frame={frame}
-          fps={fps}
-          weakness={cardData.weakness}
-          resistance={cardData.resistance}
-          retreatCost={cardData.retreatCost}
-          disableHolo={definition.disableHolo}
-        />
-        <FlavorText frame={frame} fps={fps} text={cardData.flavorText} disableHolo={definition.disableHolo} />
-        <CardFooter illustrator={cardData.illustrator} cardNumber={cardData.cardNumber} />
-      </CardShell>
+                <EvolveButton
+                  canEvolve={!isEvolved}
+                  isEvolving={isEvolving}
+                  onEvolve={handleEvolve}
+                />
+              </>
+            }
+          />
+        </CardShell>
+      </CardThemeProvider>
     </div>
   );
 };

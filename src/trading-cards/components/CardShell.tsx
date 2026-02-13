@@ -1,47 +1,48 @@
 import React from 'react';
-import { holoAngle, holoGradient, defaultCardShadow } from '../styles/holo';
+import { holoAngle, holoGradient } from '../styles/holo';
+import { useCardTheme } from '../styles/CardThemeContext';
 
 interface CardShellProps {
   frame: number;
   fps: number;
   boxShadow?: string;
   transform?: string;
-  disableHolo?: boolean;
   children: React.ReactNode;
 }
 
 export const CardShell: React.FC<CardShellProps> = ({
   frame,
   fps,
-  boxShadow = defaultCardShadow,
+  boxShadow,
   transform,
-  disableHolo = false,
   children,
 }) => {
+  const theme = useCardTheme();
   const angle = holoAngle(frame, fps);
+  const borderShimmer = theme.holo?.border?.(angle) ?? holoGradient(angle);
 
   return (
     <div
       style={{
-        width: 350,
-        height: 490,
-        borderRadius: 12,
-        padding: 6,
+        width: theme.shell.width,
+        height: theme.shell.height,
+        borderRadius: theme.shell.borderRadius,
+        padding: theme.shell.borderPadding,
         flexShrink: 0,
         position: 'relative',
-        background: 'linear-gradient(160deg, #e8d44d 0%, #d4a017 100%)',
-        boxShadow,
+        background: theme.shell.borderBackground,
+        boxShadow: boxShadow ?? theme.shell.boxShadow,
         transform,
       }}
     >
       {/* Holographic shimmer overlay on card border */}
-      {!disableHolo && (
+      {theme.holoEnabled && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            borderRadius: 12,
-            background: holoGradient(angle),
+            borderRadius: theme.shell.borderRadius,
+            background: borderShimmer,
             pointerEvents: 'none',
             zIndex: 3,
             mixBlendMode: 'screen',
@@ -53,8 +54,8 @@ export const CardShell: React.FC<CardShellProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          borderRadius: 7,
-          background: 'linear-gradient(180deg, #4a9ec9 0%, #3a82ad 6%, #e2ecf2 6%, #e2ecf2 100%)',
+          borderRadius: theme.shell.innerBorderRadius,
+          background: theme.shell.innerBackground,
           display: 'flex',
           flexDirection: 'column',
           padding: '6px 10px 8px',

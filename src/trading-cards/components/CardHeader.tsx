@@ -1,5 +1,6 @@
 import React from 'react';
 import { sweepAngle, headerShimmer, energyEmoji } from '../styles/holo';
+import { useCardTheme } from '../styles/CardThemeContext';
 import type { EnergyType } from '../types';
 
 interface CardHeaderProps {
@@ -9,7 +10,6 @@ interface CardHeaderProps {
   name: string;
   hp: number;
   type: EnergyType;
-  disableHolo?: boolean;
 }
 
 export const CardHeader: React.FC<CardHeaderProps> = ({
@@ -19,9 +19,10 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
   name,
   hp,
   type,
-  disableHolo = false,
 }) => {
+  const theme = useCardTheme();
   const angle = sweepAngle(frame, fps, 1, [-30, 330]);
+  const shimmer = theme.holo?.header?.(angle) ?? headerShimmer(angle);
 
   return (
     <div
@@ -36,12 +37,12 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
       }}
     >
       {/* Header shimmer overlay */}
-      {!disableHolo && (
+      {theme.holoEnabled && (
         <div
           style={{
             position: 'absolute',
             inset: 0,
-            background: headerShimmer(angle),
+            background: shimmer,
             pointerEvents: 'none',
           }}
         />
@@ -52,7 +53,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
           style={{
             fontSize: 7,
             fontWeight: 700,
-            color: 'rgba(255,255,255,0.7)',
+            color: theme.header.stageColor,
             textTransform: 'uppercase',
             letterSpacing: 0.6,
           }}
@@ -61,11 +62,11 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
         </span>
         <span
           style={{
-            fontFamily: 'Georgia, serif',
+            fontFamily: theme.header.fontFamily,
             fontSize: 17,
             fontWeight: 700,
-            color: '#fff',
-            textShadow: '0 1px 2px rgba(0,0,0,0.25)',
+            color: theme.header.nameColor,
+            textShadow: theme.header.nameTextShadow,
           }}
         >
           {name}
@@ -73,10 +74,10 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
       </div>
       {/* HP */}
       <span style={{ display: 'flex', alignItems: 'baseline', gap: 2, position: 'relative', zIndex: 1 }}>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 16, fontWeight: 700, color: '#e02020' }}>
+        <span style={{ fontFamily: theme.header.fontFamily, fontSize: 16, fontWeight: 700, color: theme.header.hpColor }}>
           {hp}
         </span>
-        <span style={{ fontFamily: 'Georgia, serif', fontSize: 9, fontWeight: 700, color: '#e02020' }}>
+        <span style={{ fontFamily: theme.header.fontFamily, fontSize: 9, fontWeight: 700, color: theme.header.hpColor }}>
           HP
         </span>
         <span style={{ fontSize: 12, marginLeft: 2 }}>{energyEmoji[type]}</span>

@@ -282,15 +282,19 @@ function goldenClone(original: THREE.Object3D): THREE.Object3D {
   return clone;
 }
 
-export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReaction, isCubed, debug }) => {
+export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReaction, isCubed, isDancing, isEvolving, isEvolved, debug, animatedGroupRef }) => {
   const groupRef = useRef<THREE.Group>(null!);
+  if (animatedGroupRef) animatedGroupRef.current = groupRef.current;
   const { scene } = useGLTF('models/pengoo.glb');
   const { scene: rockScene } = useGLTF('models/rock.glb');
   const attackStart = useRef(0);
   const hitStart = useRef(0);
+  const evolveStart = useRef(0);
   const shieldMorph = useRef(0); // 0 = sphere, 1 = cube
   const lightningVisible = useRef(false);
   const prevAttack = useRef<string | null>(null);
+
+  const targetScale = isEvolved ? BASE_SCALE * 1.5 : BASE_SCALE;
 
   const { centerOffset, boxSize } = useModelBounds(scene);
   const goldenScene = useMemo(() => goldenClone(scene), [scene]);
@@ -331,7 +335,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
         groupRef.current.position.y = -Math.abs(flinch) * 0.5;
         groupRef.current.rotation.z = flinch * 0.15;
         groupRef.current.rotation.x = -0.2 * intensity;
-        groupRef.current.scale.setScalar(BASE_SCALE - intensity * 0.8);
+        groupRef.current.scale.setScalar(targetScale - intensity * 0.8);
       } else if (hitReaction === 'hit-heavy') {
         const phase = Math.min(elapsed / 0.66, 1);
         if (phase < 0.3) {
@@ -340,7 +344,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
           groupRef.current.position.y = -knock * 2;
           groupRef.current.rotation.z = knock * 0.5;
           groupRef.current.rotation.x = -knock * 0.4;
-          groupRef.current.scale.setScalar(BASE_SCALE - knock * 2);
+          groupRef.current.scale.setScalar(targetScale - knock * 2);
         } else if (phase < 0.6) {
           const tumble = (phase - 0.3) / 0.3;
           groupRef.current.position.x = -4 + tumble * 2;
@@ -369,13 +373,65 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
       // Ease shield back to sphere
       shieldMorph.current += (0 - shieldMorph.current) * 0.05;
 
+      // Evolving animation (2.5s electric transformation)
+      if (isEvolving) {
+        if (evolveStart.current === 0) evolveStart.current = t;
+        const elapsed = t - evolveStart.current;
+
+        if (elapsed < 0.8) {
+          // Phase 1: Electric jitter, sparking up
+          const p = elapsed / 0.8;
+          const jitter = Math.sin(elapsed * 80) * (0.3 + p * 2);
+          groupRef.current.position.x = jitter;
+          groupRef.current.position.y = p * 1.5;
+          groupRef.current.rotation.z = Math.sin(elapsed * 50) * 0.2 * p;
+          groupRef.current.rotation.y = elapsed * 8;
+          const s = BASE_SCALE + Math.sin(elapsed * 30) * 1.5 * p;
+          groupRef.current.scale.setScalar(s);
+        } else if (elapsed < 1.8) {
+          // Phase 2: Fast surge, scale ramps to evolved size
+          const p = (elapsed - 0.8) / 1.0;
+          const ease = p * p * (3 - 2 * p);
+          groupRef.current.rotation.y = (elapsed - 0.8) * 16;
+          groupRef.current.position.y = 1.5 + Math.sin(elapsed * 10) * 0.4;
+          groupRef.current.position.x = Math.sin(elapsed * 40) * (1 - ease) * 1.2;
+          const s = BASE_SCALE + ease * (BASE_SCALE * 1.5 - BASE_SCALE);
+          groupRef.current.scale.setScalar(s);
+        } else {
+          // Phase 3: Electric settle with sparky bounce
+          const p = (elapsed - 1.8) / 0.7;
+          const spark = Math.sin(p * Math.PI * 3) * Math.max(0, 1 - p) * 1.2;
+          groupRef.current.rotation.y *= 0.9;
+          groupRef.current.position.y = (1.5 * (1 - p)) + spark * 0.2;
+          groupRef.current.position.x = spark * 0.5;
+          groupRef.current.rotation.z *= 0.9;
+          const s = BASE_SCALE * 1.5 + spark;
+          groupRef.current.scale.setScalar(s);
+        }
+        return;
+      }
+      evolveStart.current = 0;
+
       if (isCubed) {
         groupRef.current.rotation.x += 0.06;
         groupRef.current.rotation.y += 0.09;
         groupRef.current.rotation.z += 0.04;
         groupRef.current.position.x = Math.sin(t * 3) * 1.2;
         groupRef.current.position.y = Math.sin(t * 2.3) * 0.8;
-        groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.1);
+        groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
+        return;
+      }
+
+      // Dance: electric jitter with rapid hops and sparky shakes
+      if (isDancing) {
+        const hop = Math.abs(Math.sin(t * 8)) * 1.8;
+        groupRef.current.position.y = hop;
+        groupRef.current.position.x = Math.sin(t * 6) * 2;
+        groupRef.current.rotation.y = t * 6;
+        groupRef.current.rotation.z = Math.sin(t * 12) * 0.25;
+        groupRef.current.rotation.x = Math.cos(t * 8) * 0.15;
+        const s = targetScale + Math.sin(t * 16) * 0.8;
+        groupRef.current.scale.setScalar(s);
         return;
       }
 
@@ -385,7 +441,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
       groupRef.current.position.x *= 0.9;
       groupRef.current.rotation.y = Math.sin(t * 0.8) * 0.2;
       groupRef.current.position.y = Math.abs(Math.sin(t * 2.5)) * 0.6;
-      groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.1);
+      groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
       return;
     }
 
@@ -394,7 +450,6 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
     const elapsed = t - attackStart.current;
 
     if (activeAttack === 'thunder-nap') {
-      // Drowsy wobble — yawns, tips over slightly, then a static jolt
       shieldMorph.current += (0 - shieldMorph.current) * 0.05;
       const dur = 1.5;
       const phase = elapsed / dur;
@@ -402,29 +457,28 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
         const tilt = phase / 0.4;
         groupRef.current.rotation.z = tilt * 0.4;
         groupRef.current.position.y = -tilt * 0.5;
-        groupRef.current.scale.setScalar(BASE_SCALE - tilt * 0.5);
+        groupRef.current.scale.setScalar(targetScale - tilt * 0.5);
       } else if (phase < 0.6) {
         const snap = (phase - 0.4) / 0.2;
         groupRef.current.rotation.z = 0.4 * (1 - snap * 2);
         groupRef.current.position.y = -0.5 + snap * 2;
-        groupRef.current.scale.setScalar(BASE_SCALE + snap * 1.5);
+        groupRef.current.scale.setScalar(targetScale + snap * 1.5);
       } else {
         const settle = (phase - 0.6) / 0.4;
         const buzz = Math.sin(elapsed * 40) * Math.max(0, 1 - settle) * 0.3;
         groupRef.current.position.x = buzz;
         groupRef.current.position.y = 1.5 * (1 - settle);
         groupRef.current.rotation.z = buzz * 0.2;
-        groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.15);
+        groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
       }
     } else if (activeAttack === 'lightning-dash') {
-      // Blazing fast zigzag dash
       lightningVisible.current = true;
       shieldMorph.current += (0 - shieldMorph.current) * 0.05;
       const dur = 0.8;
       const phase = elapsed / dur;
       if (phase < 0.15) {
         const crouch = phase / 0.15;
-        groupRef.current.scale.setScalar(BASE_SCALE * (1 - crouch * 0.15));
+        groupRef.current.scale.setScalar(targetScale * (1 - crouch * 0.15));
         groupRef.current.position.y = -crouch * 1;
         groupRef.current.rotation.x = crouch * 0.3;
       } else if (phase < 0.6) {
@@ -433,7 +487,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
         groupRef.current.position.x = zigzag;
         groupRef.current.position.y = dash * 2;
         groupRef.current.rotation.y = elapsed * 20;
-        groupRef.current.scale.setScalar(BASE_SCALE * 0.85 + dash * BASE_SCALE * 0.3);
+        groupRef.current.scale.setScalar(targetScale * 0.85 + dash * targetScale * 0.3);
       } else {
         const land = (phase - 0.6) / 0.4;
         const bounce = Math.sin(land * Math.PI) * (1 - land);
@@ -441,39 +495,34 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
         groupRef.current.position.y = 2 * (1 - land) + bounce * 0.5;
         groupRef.current.rotation.y *= 0.9;
         groupRef.current.rotation.x *= 0.9;
-        groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.15);
+        groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
       }
     } else if (activeAttack === 'volt-surge') {
-      // Volt Surge: shield morphs sphere → cube during the attack
       const dur = 2.0;
       const phase = elapsed / dur;
 
       if (phase < 0.35) {
-        // Charge up — shield morphs to cube, penguin rises and vibrates
         const charge = phase / 0.35;
         shieldMorph.current += (charge - shieldMorph.current) * 0.12;
-        groupRef.current.scale.setScalar(BASE_SCALE + charge * 3);
+        groupRef.current.scale.setScalar(targetScale + charge * 3);
         groupRef.current.position.y = charge * 2;
         groupRef.current.rotation.y = elapsed * 4;
         groupRef.current.position.x = Math.sin(elapsed * 50) * charge * 0.8;
       } else if (phase < 0.55) {
-        // Peak overload — cube shield locked, wild shaking
         shieldMorph.current += (1 - shieldMorph.current) * 0.2;
-        groupRef.current.scale.setScalar(BASE_SCALE + 3 + Math.sin(elapsed * 20) * 1.5);
+        groupRef.current.scale.setScalar(targetScale + 3 + Math.sin(elapsed * 20) * 1.5);
         groupRef.current.position.y = 2 + Math.sin(elapsed * 15) * 0.5;
         groupRef.current.position.x = Math.sin(elapsed * 60) * 1.5;
         groupRef.current.rotation.y = elapsed * 8;
         groupRef.current.rotation.z = Math.sin(elapsed * 35) * 0.3;
       } else if (phase < 0.75) {
-        // Discharge — slam down, shield starts reverting
         const discharge = (phase - 0.55) / 0.2;
         shieldMorph.current += ((1 - discharge) - shieldMorph.current) * 0.1;
-        groupRef.current.scale.setScalar(BASE_SCALE + 3 * (1 - discharge) + discharge * 5);
+        groupRef.current.scale.setScalar(targetScale + 3 * (1 - discharge) + discharge * 5);
         groupRef.current.position.y = 2 * (1 - discharge * 1.5);
         groupRef.current.position.x = Math.sin(elapsed * 30) * (1 - discharge) * 2;
         groupRef.current.rotation.y += 0.2 * (1 - discharge);
       } else {
-        // Aftershock settle — shield eases back to sphere
         shieldMorph.current += (0 - shieldMorph.current) * 0.08;
         const settle = (phase - 0.75) / 0.25;
         const tremor = Math.sin(elapsed * 25) * Math.max(0, 1 - settle) * 0.4;
@@ -481,7 +530,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
         groupRef.current.position.y *= 1 - settle * 0.2;
         groupRef.current.rotation.y *= 0.95;
         groupRef.current.rotation.z *= 0.9;
-        groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.12);
+        groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.12);
       }
     }
 
@@ -493,7 +542,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
 
   return (
     <>
-      <group ref={groupRef} scale={BASE_SCALE}>
+      <group ref={groupRef} scale={targetScale}>
         <group position={[centerOffset.x, centerOffset.y, centerOffset.z]}>
           <primitive object={goldenScene} />
         </group>

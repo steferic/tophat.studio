@@ -1,26 +1,28 @@
 import React from 'react';
 import { sweepAngle, flavorShimmer } from '../styles/holo';
+import { useCardTheme } from '../styles/CardThemeContext';
 
 interface FlavorTextProps {
   frame: number;
   fps: number;
   text: string;
-  disableHolo?: boolean;
 }
 
-export const FlavorText: React.FC<FlavorTextProps> = ({ frame, fps, text, disableHolo = false }) => {
+export const FlavorText: React.FC<FlavorTextProps> = ({ frame, fps, text }) => {
+  const theme = useCardTheme();
   const angle = sweepAngle(frame, fps, 0.85, [-20, 340]);
+  const shimmer = theme.holo?.flavor?.(angle) ?? flavorShimmer(angle);
 
   return (
     <p
       style={{
         fontSize: 7,
         fontStyle: 'italic',
-        color: '#666',
+        color: theme.flavor.textColor,
         textAlign: 'center',
         margin: '0 6px',
         lineHeight: 1.4,
-        borderTop: '1px solid rgba(0,0,0,0.08)',
+        borderTop: theme.flavor.borderTop,
         paddingTop: 3,
         position: 'relative',
         overflow: 'hidden',
@@ -28,12 +30,12 @@ export const FlavorText: React.FC<FlavorTextProps> = ({ frame, fps, text, disabl
       }}
     >
       {/* Prismatic glint overlay */}
-      {!disableHolo && (
+      {theme.holoEnabled && (
         <span
           style={{
             position: 'absolute',
             inset: 0,
-            background: flavorShimmer(angle),
+            background: shimmer,
             pointerEvents: 'none',
           }}
         />
