@@ -1,5 +1,5 @@
 export type Attack = 'idle' | 'ice-slide' | 'glacier-crush' | 'inferno';
-export type EnergyType = 'water' | 'fire' | 'colorless' | 'psychic' | 'fighting' | 'grass';
+export type EnergyType = 'water' | 'fire' | 'colorless' | 'psychic' | 'fighting' | 'grass' | 'electric';
 
 export interface AttackData {
   name: string;

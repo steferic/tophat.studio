@@ -92,9 +92,10 @@ export const BattleCard: React.FC<BattleCardProps> = ({
   onSelectAttack,
 }) => {
   const { frame, fps } = useAnimationFrame();
-  const { entry, currentHp, maxHp, activeAttack, hitReaction, animationElapsed, statusEffects } = player;
+  const { entry, currentHp, maxHp, activeAttack, hitReaction, animationElapsed, statusEffects, incomingParticles } = player;
   const { cardData, attackKeys } = entry;
   const { definition } = entry;
+  const disableHolo = definition.disableHolo ?? false;
 
   const isCubed = statusEffects.some((e) => e.type === 'cube' && e.expiresAt > Date.now());
   const canSelect = isActiveTurn && phase === 'selecting' && !statusEffects.some((e) => e.preventsAttack && e.expiresAt > Date.now());
@@ -119,7 +120,7 @@ export const BattleCard: React.FC<BattleCardProps> = ({
   const attacksAngle = holoAngle(frame, fps, 0.83);
 
   return (
-    <CardShell frame={frame} fps={fps} boxShadow={cardShadow} transform={cardTransform}>
+    <CardShell frame={frame} fps={fps} boxShadow={cardShadow} transform={cardTransform} disableHolo={disableHolo}>
       <CardHeader
         frame={frame}
         fps={fps}
@@ -127,6 +128,7 @@ export const BattleCard: React.FC<BattleCardProps> = ({
         name={cardData.name}
         hp={currentHp}
         type={cardData.type}
+        disableHolo={disableHolo}
       />
 
       <HpBar current={currentHp} max={maxHp} />
@@ -139,12 +141,16 @@ export const BattleCard: React.FC<BattleCardProps> = ({
         interactive
         cameraId={entry.cameraId}
         artGlowDescriptor={activeAttack ? definition.attackEffects[activeAttack]?.artGlow : undefined}
+        artBackground={definition.artBackground}
+        disableHolo={disableHolo}
+        cameraMovement={activeAttack ? definition.attackEffects[activeAttack]?.camera : undefined}
       >
         <ModelScene
           definition={definition}
           activeAttack={activeAttack}
           hitReaction={hitReaction}
           isCubed={isCubed}
+          incomingParticles={incomingParticles}
           debug
         />
       </ArtWindow>
@@ -166,15 +172,17 @@ export const BattleCard: React.FC<BattleCardProps> = ({
           marginTop: 3,
         }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            inset: '-80%',
-            background: attacksShimmer(attacksAngle),
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        />
+        {!disableHolo && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: '-80%',
+              background: attacksShimmer(attacksAngle),
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+        )}
         {cardData.attacks.map((atk, i) => (
           <React.Fragment key={i}>
             {i > 0 && <AttackDivider />}
@@ -198,8 +206,9 @@ export const BattleCard: React.FC<BattleCardProps> = ({
         weakness={cardData.weakness}
         resistance={cardData.resistance}
         retreatCost={cardData.retreatCost}
+        disableHolo={disableHolo}
       />
-      <FlavorText frame={frame} fps={fps} text={cardData.flavorText} />
+      <FlavorText frame={frame} fps={fps} text={cardData.flavorText} disableHolo={disableHolo} />
       <CardFooter illustrator={cardData.illustrator} cardNumber={cardData.cardNumber} />
     </CardShell>
   );

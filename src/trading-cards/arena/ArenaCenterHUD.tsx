@@ -13,7 +13,6 @@ interface ArenaCenterHUDProps {
 const PHASE_LABELS: Record<BattlePhase, string> = {
   selecting: 'Select Attack',
   'animating-attack': 'Attacking!',
-  'animating-hit': 'Hit!',
   resolving: '...',
   'turn-end': 'Next Turn',
   'game-over': 'Game Over',

@@ -5,9 +5,10 @@ interface FlavorTextProps {
   frame: number;
   fps: number;
   text: string;
+  disableHolo?: boolean;
 }
 
-export const FlavorText: React.FC<FlavorTextProps> = ({ frame, fps, text }) => {
+export const FlavorText: React.FC<FlavorTextProps> = ({ frame, fps, text, disableHolo = false }) => {
   const angle = sweepAngle(frame, fps, 0.85, [-20, 340]);
 
   return (
@@ -27,14 +28,16 @@ export const FlavorText: React.FC<FlavorTextProps> = ({ frame, fps, text }) => {
       }}
     >
       {/* Prismatic glint overlay */}
-      <span
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: flavorShimmer(angle),
-          pointerEvents: 'none',
-        }}
-      />
+      {!disableHolo && (
+        <span
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: flavorShimmer(angle),
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       <span style={{ position: 'relative', zIndex: 1 }}>{text}</span>
     </p>
   );

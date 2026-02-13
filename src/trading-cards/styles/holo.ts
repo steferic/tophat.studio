@@ -68,6 +68,7 @@ export const energyEmoji: Record<string, string> = {
   psychic: '\uD83D\uDD2E',
   fighting: '\uD83D\uDC4A',
   grass: '\uD83C\uDF3F',
+  electric: '\u26A1',
 };
 
 /**

@@ -132,6 +132,7 @@ export const pengoDefinition: CardDefinition = {
         },
       },
       particles: [{ particleSystem: 'fire', mode: 'default' }],
+      hitParticles: [{ particleSystem: 'fire', mode: 'default' }],
     },
   },
   model: {

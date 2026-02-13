@@ -5,7 +5,7 @@ import { CubePrison } from './CubePrison';
 import { LightDispatcher } from './lights/LightDispatcher';
 import { ParticleDispatcher } from './particles/ParticleDispatcher';
 import { useModelBounds } from './useModelBounds';
-import type { CardDefinition } from '../arena/descriptorTypes';
+import type { CardDefinition, AttackParticleDescriptor } from '../arena/descriptorTypes';
 
 type HitReaction = 'hit-light' | 'hit-heavy' | null;
 
@@ -15,6 +15,8 @@ interface ModelSceneProps {
   hitReaction?: HitReaction;
   isCubed?: boolean;
   debug?: boolean;
+  /** Particle effects from an incoming attack */
+  incomingParticles?: AttackParticleDescriptor[];
 }
 
 /**
@@ -27,6 +29,7 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
   hitReaction = null,
   isCubed = false,
   debug = false,
+  incomingParticles = [],
 }) => {
   const { model, attackEffects } = definition;
   const ModelComponent = model.ModelComponent;
@@ -62,6 +65,10 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
       <ParticleDispatcher
         descriptors={effectConfig?.particles}
         active={activeAttack !== null}
+      />
+      <ParticleDispatcher
+        descriptors={incomingParticles}
+        active={incomingParticles.length > 0}
       />
       <CubePrison active={isCubed} targetSize={worldSize} />
     </>

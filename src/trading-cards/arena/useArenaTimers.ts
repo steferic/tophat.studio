@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ArenaState, ArenaAction } from './types';
 
-const HIT_DURATIONS = { 'hit-light': 400, 'hit-heavy': 660 } as const;
+const HIT_REACTION_DELAY = 1000;
 const RESOLVE_DELAY = 1200;
 const TURN_END_DELAY = 800;
 const CUBE_SKIP_DELAY = 1500;
@@ -17,18 +17,19 @@ export function useArenaTimers(
   const phaseStartRef = useRef(0);
   const lastTickRef = useRef(0);
   const dispatchedRef = useRef(false);
+  const hitStartedRef = useRef(false);
 
   // Reset tracking whenever phase changes
   useEffect(() => {
     phaseStartRef.current = performance.now();
     lastTickRef.current = performance.now();
     dispatchedRef.current = false;
+    hitStartedRef.current = false;
   }, [state.phase]);
 
   useEffect(() => {
     if (
       state.phase !== 'animating-attack' &&
-      state.phase !== 'animating-hit' &&
       state.phase !== 'resolving' &&
       state.phase !== 'turn-end'
     ) {
@@ -44,10 +45,7 @@ export function useArenaTimers(
       lastTickRef.current = now;
 
       // Tick elapsed for animation progress
-      if (
-        (state.phase === 'animating-attack' || state.phase === 'animating-hit') &&
-        delta > 0
-      ) {
+      if (state.phase === 'animating-attack' && delta > 0) {
         dispatch({ type: 'TICK_ELAPSED', delta });
       }
 
@@ -58,23 +56,21 @@ export function useArenaTimers(
         const attackKey = attacker.activeAttack;
         if (attackKey) {
           const duration = attacker.entry.attackDurations[attackKey] ?? 1000;
+
+          // Start hit reaction on defender partway through the attack
+          if (!hitStartedRef.current) {
+            const effectConfig = attacker.entry.definition.attackEffects[attackKey];
+            const hitDelay = Math.min(HIT_REACTION_DELAY, duration - 300);
+            if (!effectConfig?.skipHitAnimation && elapsed >= hitDelay) {
+              hitStartedRef.current = true;
+              dispatch({ type: 'HIT_REACTION_START' });
+            }
+          }
+
+          // End attack animation after full duration
           if (elapsed >= duration) {
             dispatchedRef.current = true;
             dispatch({ type: 'ATTACK_ANIMATION_COMPLETE' });
-            return;
-          }
-        }
-      }
-
-      if (state.phase === 'animating-hit') {
-        const defenderSide = state.turn === 'left' ? 'right' : 'left';
-        const defender = state[defenderSide];
-        const reaction = defender.hitReaction;
-        if (reaction) {
-          const duration = HIT_DURATIONS[reaction];
-          if (elapsed >= duration) {
-            dispatchedRef.current = true;
-            dispatch({ type: 'HIT_ANIMATION_COMPLETE' });
             return;
           }
         }

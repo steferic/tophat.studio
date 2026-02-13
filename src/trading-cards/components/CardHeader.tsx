@@ -9,6 +9,7 @@ interface CardHeaderProps {
   name: string;
   hp: number;
   type: EnergyType;
+  disableHolo?: boolean;
 }
 
 export const CardHeader: React.FC<CardHeaderProps> = ({
@@ -18,6 +19,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
   name,
   hp,
   type,
+  disableHolo = false,
 }) => {
   const angle = sweepAngle(frame, fps, 1, [-30, 330]);
 
@@ -34,14 +36,16 @@ export const CardHeader: React.FC<CardHeaderProps> = ({
       }}
     >
       {/* Header shimmer overlay */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: headerShimmer(angle),
-          pointerEvents: 'none',
-        }}
-      />
+      {!disableHolo && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: headerShimmer(angle),
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       {/* Name group */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, position: 'relative', zIndex: 1 }}>
         <span

@@ -8,6 +8,7 @@ interface StatsBarProps {
   weakness: { type: EnergyType; modifier: string };
   resistance: { type: EnergyType; modifier: string };
   retreatCost: number;
+  disableHolo?: boolean;
 }
 
 const StatItem: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -45,6 +46,7 @@ export const StatsBar: React.FC<StatsBarProps> = ({
   weakness,
   resistance,
   retreatCost,
+  disableHolo = false,
 }) => {
   const angle = sweepAngle(frame, fps, 1.5, [-30, 330]);
 
@@ -62,14 +64,16 @@ export const StatsBar: React.FC<StatsBarProps> = ({
       }}
     >
       {/* Chrome sliding highlight */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: statsShimmer(angle),
-          pointerEvents: 'none',
-        }}
-      />
+      {!disableHolo && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: statsShimmer(angle),
+            pointerEvents: 'none',
+          }}
+        />
+      )}
       <StatItem label="weakness">
         <span style={{ fontSize: 11 }}>{energyEmoji[weakness.type]}</span> {weakness.modifier}
       </StatItem>

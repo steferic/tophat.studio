@@ -1,14 +1,13 @@
 import type { CardData, EnergyType } from '../types';
-import type { CardDefinition } from './descriptorTypes';
+import type { CardDefinition, AttackParticleDescriptor } from './descriptorTypes';
 
 // ── Phase flow ──────────────────────────────────────────────
-// selecting → animating-attack → animating-hit → resolving → turn-end → selecting
-//                                                          ↘ game-over
+// selecting → animating-attack → resolving → turn-end → selecting
+//             (hit reaction starts mid-attack)       ↘ game-over
 
 export type BattlePhase =
   | 'selecting'
   | 'animating-attack'
-  | 'animating-hit'
   | 'resolving'
   | 'turn-end'
   | 'game-over';
@@ -40,6 +39,8 @@ export interface StatusEffect {
   expiresAt: number;
   preventsAttack: boolean;
   tickDamage: number;
+  /** Multiplier applied to this player's attack damage while active */
+  damageMultiplier?: number;
 }
 
 // ── Player state ────────────────────────────────────────────
@@ -56,6 +57,8 @@ export interface PlayerState {
   animationElapsed: number;
   /** Active status effects on this player */
   statusEffects: StatusEffect[];
+  /** Particle effects from an incoming attack (rendered on this player's model) */
+  incomingParticles: AttackParticleDescriptor[];
 }
 
 // ── Damage event ────────────────────────────────────────────
@@ -89,8 +92,8 @@ export interface ArenaState {
 
 export type ArenaAction =
   | { type: 'SELECT_ATTACK'; attackIndex: number }
+  | { type: 'HIT_REACTION_START' }
   | { type: 'ATTACK_ANIMATION_COMPLETE' }
-  | { type: 'HIT_ANIMATION_COMPLETE' }
   | { type: 'DAMAGE_RESOLVED' }
   | { type: 'END_TURN' }
   | { type: 'SKIP_TURN' }

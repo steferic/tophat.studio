@@ -341,6 +341,383 @@ export function playInfernoSound() {
   sub.stop(now + 1.4);
 }
 
+/** Shadow Slide: dark whoosh with spectral trail */
+export function playShadowSlideSound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  // Dark whoosh — low-pitched wind
+  const bufSize = ctx.sampleRate * 0.6;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / ctx.sampleRate;
+    const env = t < 0.05 ? t / 0.05 : Math.pow(1 - (t - 0.05) / 0.55, 1.8);
+    d[i] = (Math.random() * 2 - 1) * env;
+  }
+  const whoosh = ctx.createBufferSource();
+  const whooshGain = ctx.createGain();
+  const whooshFilter = ctx.createBiquadFilter();
+  whoosh.buffer = buf;
+  whooshFilter.type = 'bandpass';
+  whooshFilter.frequency.setValueAtTime(400, now);
+  whooshFilter.frequency.exponentialRampToValueAtTime(100, now + 0.6);
+  whooshFilter.Q.value = 2;
+  whooshGain.gain.setValueAtTime(0.3, now);
+  whooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+  whoosh.connect(whooshFilter).connect(whooshGain).connect(ctx.destination);
+  whoosh.start(now);
+  // Spectral tone — eerie descending
+  const ghost = ctx.createOscillator();
+  const ghostGain = ctx.createGain();
+  ghost.type = 'sine';
+  ghost.frequency.setValueAtTime(800, now);
+  ghost.frequency.exponentialRampToValueAtTime(150, now + 0.5);
+  ghostGain.gain.setValueAtTime(0.1, now);
+  ghostGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  ghost.connect(ghostGain).connect(ctx.destination);
+  ghost.start(now);
+  ghost.stop(now + 0.5);
+}
+
+/** Soul Drain: eerie droning hum with spectral screams */
+export function playSoulDrainSound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  // Deep droning hum
+  const drone = ctx.createOscillator();
+  const droneGain = ctx.createGain();
+  drone.type = 'sawtooth';
+  drone.frequency.setValueAtTime(55, now);
+  drone.frequency.linearRampToValueAtTime(65, now + 1.5);
+  drone.frequency.linearRampToValueAtTime(50, now + 2.5);
+  droneGain.gain.setValueAtTime(0.001, now);
+  droneGain.gain.linearRampToValueAtTime(0.18, now + 0.5);
+  droneGain.gain.linearRampToValueAtTime(0.12, now + 2.0);
+  droneGain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+  const droneFilter = ctx.createBiquadFilter();
+  droneFilter.type = 'lowpass';
+  droneFilter.frequency.value = 200;
+  drone.connect(droneFilter).connect(droneGain).connect(ctx.destination);
+  drone.start(now);
+  drone.stop(now + 2.5);
+  // Spectral screams — staggered rising tones
+  for (let s = 0; s < 3; s++) {
+    const delay = 0.3 + s * 0.5;
+    const scream = ctx.createOscillator();
+    const screamGain = ctx.createGain();
+    scream.type = 'sine';
+    scream.frequency.setValueAtTime(300 + s * 200, now + delay);
+    scream.frequency.exponentialRampToValueAtTime(800 + s * 300, now + delay + 0.4);
+    scream.frequency.exponentialRampToValueAtTime(200, now + delay + 0.8);
+    screamGain.gain.setValueAtTime(0.06, now + delay);
+    screamGain.gain.linearRampToValueAtTime(0.1, now + delay + 0.2);
+    screamGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.8);
+    scream.connect(screamGain).connect(ctx.destination);
+    scream.start(now + delay);
+    scream.stop(now + delay + 0.8);
+  }
+}
+
+/** Void Collapse: otherworldly implosion + reality-tearing distortion */
+export function playVoidCollapseSound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  // Reverse suction — rising then cutting
+  const suction = ctx.createOscillator();
+  const suctionGain = ctx.createGain();
+  suction.type = 'sawtooth';
+  suction.frequency.setValueAtTime(30, now);
+  suction.frequency.exponentialRampToValueAtTime(500, now + 0.8);
+  suction.frequency.exponentialRampToValueAtTime(20, now + 1.0);
+  suctionGain.gain.setValueAtTime(0.15, now);
+  suctionGain.gain.linearRampToValueAtTime(0.3, now + 0.7);
+  suctionGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+  suction.connect(suctionGain).connect(ctx.destination);
+  suction.start(now);
+  suction.stop(now + 1.0);
+  // Explosion at the collapse point
+  const bufSize = ctx.sampleRate * 1.0;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / ctx.sampleRate;
+    const env = t < 0.03 ? t / 0.03 : Math.pow(1 - (t - 0.03) / 0.97, 1.5);
+    d[i] = (Math.random() * 2 - 1) * env;
+  }
+  const explosion = ctx.createBufferSource();
+  const explosionGain = ctx.createGain();
+  const explosionFilter = ctx.createBiquadFilter();
+  explosion.buffer = buf;
+  explosionFilter.type = 'lowpass';
+  explosionFilter.frequency.setValueAtTime(3000, now + 0.8);
+  explosionFilter.frequency.exponentialRampToValueAtTime(200, now + 1.8);
+  explosionGain.gain.setValueAtTime(0.001, now);
+  explosionGain.gain.setValueAtTime(0.4, now + 0.8);
+  explosionGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+  explosion.connect(explosionFilter).connect(explosionGain).connect(ctx.destination);
+  explosion.start(now);
+  // Deep sub bass
+  const sub = ctx.createOscillator();
+  const subGain = ctx.createGain();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(35, now + 0.8);
+  sub.frequency.exponentialRampToValueAtTime(15, now + 2.0);
+  subGain.gain.setValueAtTime(0.001, now);
+  subGain.gain.setValueAtTime(0.35, now + 0.8);
+  subGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+  sub.connect(subGain).connect(ctx.destination);
+  sub.start(now);
+  sub.stop(now + 2.0);
+  // Distorted tearing sounds
+  for (let r = 0; r < 5; r++) {
+    const delay = 0.85 + r * 0.12;
+    const tear = ctx.createOscillator();
+    const tearGain = ctx.createGain();
+    tear.type = 'square';
+    tear.frequency.setValueAtTime(2000 + ((r * 6143) % 1500), now + delay);
+    tear.frequency.exponentialRampToValueAtTime(100, now + delay + 0.1);
+    tearGain.gain.setValueAtTime(0.07, now + delay);
+    tearGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.1);
+    tear.connect(tearGain).connect(ctx.destination);
+    tear.start(now + delay);
+    tear.stop(now + delay + 0.1);
+  }
+}
+
+/** Thunder Nap: sleepy yawn tone into a sharp electric snap */
+export function playThunderNapSound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  // Drowsy descending hum
+  const yawn = ctx.createOscillator();
+  const yawnGain = ctx.createGain();
+  yawn.type = 'sine';
+  yawn.frequency.setValueAtTime(300, now);
+  yawn.frequency.exponentialRampToValueAtTime(120, now + 0.5);
+  yawnGain.gain.setValueAtTime(0.15, now);
+  yawnGain.gain.linearRampToValueAtTime(0.08, now + 0.5);
+  yawnGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+  yawn.connect(yawnGain).connect(ctx.destination);
+  yawn.start(now);
+  yawn.stop(now + 0.6);
+  // Electric snap
+  const snap = ctx.createOscillator();
+  const snapGain = ctx.createGain();
+  snap.type = 'square';
+  snap.frequency.setValueAtTime(2000, now + 0.5);
+  snap.frequency.exponentialRampToValueAtTime(400, now + 0.65);
+  snapGain.gain.setValueAtTime(0.2, now + 0.5);
+  snapGain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+  snap.connect(snapGain).connect(ctx.destination);
+  snap.start(now + 0.5);
+  snap.stop(now + 0.7);
+  // Static crackle
+  const bufSize = ctx.sampleRate * 0.3;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufSize, 3);
+  }
+  const crackle = ctx.createBufferSource();
+  const crackleGain = ctx.createGain();
+  const crackleFilter = ctx.createBiquadFilter();
+  crackle.buffer = buf;
+  crackleFilter.type = 'highpass';
+  crackleFilter.frequency.value = 1500;
+  crackleGain.gain.setValueAtTime(0.15, now + 0.5);
+  crackleGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+  crackle.connect(crackleFilter).connect(crackleGain).connect(ctx.destination);
+  crackle.start(now + 0.5);
+  setTimeout(() => ctx.close(), 2000);
+}
+
+/** Lightning Dash: fast electric whoosh with zigzag zaps */
+export function playLightningDashSound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  // Electric whoosh
+  const bufSize = ctx.sampleRate * 0.5;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / ctx.sampleRate;
+    const env = t < 0.05 ? t / 0.05 : Math.pow(1 - (t - 0.05) / 0.45, 2);
+    d[i] = (Math.random() * 2 - 1) * env;
+  }
+  const whoosh = ctx.createBufferSource();
+  const whooshGain = ctx.createGain();
+  const whooshFilter = ctx.createBiquadFilter();
+  whoosh.buffer = buf;
+  whooshFilter.type = 'bandpass';
+  whooshFilter.frequency.setValueAtTime(800, now);
+  whooshFilter.frequency.exponentialRampToValueAtTime(3000, now + 0.3);
+  whooshFilter.Q.value = 1.5;
+  whooshGain.gain.setValueAtTime(0.3, now);
+  whooshGain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  whoosh.connect(whooshFilter).connect(whooshGain).connect(ctx.destination);
+  whoosh.start(now);
+  // Rapid zap pops
+  for (let z = 0; z < 5; z++) {
+    const delay = 0.03 + z * 0.06;
+    const zap = ctx.createOscillator();
+    const zapGain = ctx.createGain();
+    zap.type = 'sawtooth';
+    zap.frequency.setValueAtTime(3000 + ((z * 2137) % 1500), now + delay);
+    zap.frequency.exponentialRampToValueAtTime(200, now + delay + 0.04);
+    zapGain.gain.setValueAtTime(0.08, now + delay);
+    zapGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.04);
+    zap.connect(zapGain).connect(ctx.destination);
+    zap.start(now + delay);
+    zap.stop(now + delay + 0.04);
+  }
+  setTimeout(() => ctx.close(), 1500);
+}
+
+/** Volt Surge: massive electric overload with rising charge and discharge */
+export function playVoltSurgeSound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.35, now);
+  master.connect(ctx.destination);
+  // Rising charge hum
+  const charge = ctx.createOscillator();
+  const chargeGain = ctx.createGain();
+  charge.type = 'sawtooth';
+  charge.frequency.setValueAtTime(60, now);
+  charge.frequency.exponentialRampToValueAtTime(500, now + 0.8);
+  const chargeFilter = ctx.createBiquadFilter();
+  chargeFilter.type = 'lowpass';
+  chargeFilter.frequency.setValueAtTime(200, now);
+  chargeFilter.frequency.exponentialRampToValueAtTime(4000, now + 0.8);
+  chargeGain.gain.setValueAtTime(0.3, now);
+  chargeGain.gain.linearRampToValueAtTime(0.5, now + 0.7);
+  chargeGain.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+  charge.connect(chargeFilter).connect(chargeGain).connect(master);
+  charge.start(now);
+  charge.stop(now + 1.0);
+  // Discharge explosion
+  const bufSize = ctx.sampleRate * 1.2;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    const t = i / ctx.sampleRate;
+    const env = t < 0.02 ? t / 0.02 : Math.pow(1 - (t - 0.02) / 1.18, 1.8);
+    d[i] = (Math.random() * 2 - 1) * env;
+  }
+  const explosion = ctx.createBufferSource();
+  const explosionGain = ctx.createGain();
+  const explosionFilter = ctx.createBiquadFilter();
+  explosion.buffer = buf;
+  explosionFilter.type = 'bandpass';
+  explosionFilter.frequency.setValueAtTime(2000, now + 0.8);
+  explosionFilter.frequency.exponentialRampToValueAtTime(300, now + 2.0);
+  explosionFilter.Q.value = 1;
+  explosionGain.gain.setValueAtTime(0.001, now);
+  explosionGain.gain.setValueAtTime(0.4, now + 0.8);
+  explosionGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+  explosion.connect(explosionFilter).connect(explosionGain).connect(master);
+  explosion.start(now);
+  // Electric arcs — high pitched descending zaps
+  for (let a = 0; a < 8; a++) {
+    const delay = 0.8 + a * 0.1;
+    const arc = ctx.createOscillator();
+    const arcGain = ctx.createGain();
+    arc.type = 'square';
+    arc.frequency.setValueAtTime(4000 + ((a * 3571) % 2000), now + delay);
+    arc.frequency.exponentialRampToValueAtTime(200, now + delay + 0.06);
+    arcGain.gain.setValueAtTime(0.06, now + delay);
+    arcGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.06);
+    arc.connect(arcGain).connect(master);
+    arc.start(now + delay);
+    arc.stop(now + delay + 0.06);
+  }
+  // Sub bass thump
+  const sub = ctx.createOscillator();
+  const subGain = ctx.createGain();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(50, now + 0.8);
+  sub.frequency.exponentialRampToValueAtTime(20, now + 1.8);
+  subGain.gain.setValueAtTime(0.001, now);
+  subGain.gain.setValueAtTime(0.35, now + 0.8);
+  subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.8);
+  sub.connect(subGain).connect(master);
+  sub.start(now);
+  sub.stop(now + 1.8);
+  setTimeout(() => ctx.close(), 3000);
+}
+
+/** Multiply: staggered rising tones that echo and multiply */
+export function playMultiplySound() {
+  const ctx = new AudioContext();
+  const now = ctx.currentTime;
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.3, now);
+  master.connect(ctx.destination);
+  // Base rising power tone
+  const base = ctx.createOscillator();
+  const baseGain = ctx.createGain();
+  base.type = 'sine';
+  base.frequency.setValueAtTime(200, now);
+  base.frequency.exponentialRampToValueAtTime(800, now + 1.0);
+  baseGain.gain.setValueAtTime(0.4, now);
+  baseGain.gain.linearRampToValueAtTime(0, now + 1.5);
+  base.connect(baseGain).connect(master);
+  base.start(now);
+  base.stop(now + 1.5);
+  // Staggered clone tones — each higher, creating a "multiplication" effect
+  for (let i = 0; i < 6; i++) {
+    const delay = i * 0.15;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(400 + i * 80, now + delay);
+    osc.frequency.exponentialRampToValueAtTime(600 + i * 120, now + delay + 0.8);
+    gain.gain.setValueAtTime(0, now + delay);
+    gain.gain.linearRampToValueAtTime(0.25, now + delay + 0.1);
+    gain.gain.linearRampToValueAtTime(0, now + delay + 1.0);
+    osc.connect(gain).connect(master);
+    osc.start(now + delay);
+    osc.stop(now + delay + 1.0);
+  }
+  // High shimmer noise
+  const bufSize = ctx.sampleRate * 1.5;
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) {
+    d[i] = (Math.random() * 2 - 1) * 0.3;
+  }
+  const noise = ctx.createBufferSource();
+  const noiseFilter = ctx.createBiquadFilter();
+  const noiseGain = ctx.createGain();
+  noise.buffer = buf;
+  noiseFilter.type = 'bandpass';
+  noiseFilter.frequency.setValueAtTime(2000, now);
+  noiseFilter.frequency.exponentialRampToValueAtTime(6000, now + 1.0);
+  noiseFilter.Q.value = 3;
+  noiseGain.gain.setValueAtTime(0, now);
+  noiseGain.gain.linearRampToValueAtTime(0.15, now + 0.5);
+  noiseGain.gain.linearRampToValueAtTime(0, now + 1.5);
+  noise.connect(noiseFilter).connect(noiseGain).connect(master);
+  noise.start(now);
+  noise.stop(now + 1.5);
+  // Deep power chord at the climax
+  const chord = ctx.createOscillator();
+  const chordGain = ctx.createGain();
+  chord.type = 'sawtooth';
+  chord.frequency.setValueAtTime(110, now + 0.8);
+  const chordFilter = ctx.createBiquadFilter();
+  chordFilter.type = 'lowpass';
+  chordFilter.frequency.value = 300;
+  chordGain.gain.setValueAtTime(0, now + 0.8);
+  chordGain.gain.linearRampToValueAtTime(0.3, now + 1.0);
+  chordGain.gain.linearRampToValueAtTime(0, now + 2.0);
+  chord.connect(chordFilter).connect(chordGain).connect(master);
+  chord.start(now + 0.8);
+  chord.stop(now + 2.0);
+  setTimeout(() => ctx.close(), 3000);
+}
+
 /** Cube attack: metallic locking snap + crystalline shimmer + deep void resonance */
 export function playCubeSound() {
   const audio = new Audio('audio/sfx/annihilation.mp3');

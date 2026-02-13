@@ -6,6 +6,7 @@ interface CardShellProps {
   fps: number;
   boxShadow?: string;
   transform?: string;
+  disableHolo?: boolean;
   children: React.ReactNode;
 }
 
@@ -14,6 +15,7 @@ export const CardShell: React.FC<CardShellProps> = ({
   fps,
   boxShadow = defaultCardShadow,
   transform,
+  disableHolo = false,
   children,
 }) => {
   const angle = holoAngle(frame, fps);
@@ -33,17 +35,19 @@ export const CardShell: React.FC<CardShellProps> = ({
       }}
     >
       {/* Holographic shimmer overlay on card border */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          borderRadius: 12,
-          background: holoGradient(angle),
-          pointerEvents: 'none',
-          zIndex: 3,
-          mixBlendMode: 'screen',
-        }}
-      />
+      {!disableHolo && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: 12,
+            background: holoGradient(angle),
+            pointerEvents: 'none',
+            zIndex: 3,
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
       {/* Card inner */}
       <div
         style={{

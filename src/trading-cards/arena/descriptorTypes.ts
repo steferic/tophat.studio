@@ -49,6 +49,8 @@ export interface StatusEffectDescriptor {
   durationMs: number;
   preventsAttack: boolean;
   tickDamage: number;
+  /** Multiplier applied to this player's attack damage while active */
+  damageMultiplier?: number;
 }
 
 // ── Lights ──────────────────────────────────────────────────
@@ -98,6 +100,24 @@ export interface ArtGlowDescriptor {
   }>;
 }
 
+// ── Camera Movement ────────────────────────────────────────
+
+export type CameraPreset =
+  | 'close-up'
+  | 'orbit-360'
+  | 'zoom-punch'
+  | 'dramatic-low'
+  | 'pull-back'
+  | 'shake-focus';
+
+export interface CameraMovementDescriptor {
+  preset: CameraPreset;
+  /** Override default duration in seconds (defaults per preset) */
+  duration?: number;
+  /** Scale movement intensity, default 1 */
+  intensity?: number;
+}
+
 // ── Per-Attack Effect Config ────────────────────────────────
 
 export interface AttackEffectConfig {
@@ -108,8 +128,13 @@ export interface AttackEffectConfig {
   voiceLine?: VoiceLineDescriptor;
   light?: AttackLightDescriptor;
   particles?: AttackParticleDescriptor[];
+  /** Particles that appear on the defender's model when hit */
+  hitParticles?: AttackParticleDescriptor[];
   statusEffect?: StatusEffectDescriptor;
+  /** Status effect applied to the attacker (self-buff) */
+  selfStatusEffect?: StatusEffectDescriptor;
   skipHitAnimation?: boolean;
+  camera?: CameraMovementDescriptor;
 }
 
 // ── Model Config ────────────────────────────────────────────
@@ -127,6 +152,9 @@ export interface ModelConfig {
   ModelComponent: React.ComponentType<ModelComponentProps>;
 }
 
+export const DEFAULT_ART_BACKGROUND =
+  'linear-gradient(180deg, #b5ddf0 0%, #7ec4e2 50%, #5aafcf 100%)';
+
 // ── Card Definition ─────────────────────────────────────────
 
 export interface CardDefinition {
@@ -137,4 +165,8 @@ export interface CardDefinition {
   attackEffects: Record<string, AttackEffectConfig>;
   model: ModelConfig;
   cameraId: string;
+  /** CSS background for the art window (defaults to blue sky) */
+  artBackground?: string;
+  /** Disable holographic shimmer overlays on this card */
+  disableHolo?: boolean;
 }

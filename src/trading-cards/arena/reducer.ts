@@ -5,7 +5,6 @@ import type {
   PlayerState,
   DamageEvent,
   HitReaction,
-  Side,
 } from './types';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -19,6 +18,7 @@ function createPlayer(entry: BattleCardEntry): PlayerState {
     hitReaction: null,
     animationElapsed: 0,
     statusEffects: [],
+    incomingParticles: [],
   };
 }
 
@@ -87,6 +87,21 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
       const attackKey = attacker.entry.attackKeys[action.attackIndex];
       if (!attackKey) return state;
 
+      // Pre-compute damage so timer hook knows hit reaction
+      const baseDamage = calculateDamage(
+        attacker.entry,
+        action.attackIndex,
+        state[defenderSide].entry,
+      );
+
+      // Apply damage multiplier from attacker's active self-buffs
+      const multiplyEffect = attacker.statusEffects.find(
+        (e) => e.damageMultiplier && e.damageMultiplier > 1 && e.expiresAt > Date.now(),
+      );
+      const lastDamage = multiplyEffect?.damageMultiplier
+        ? { ...baseDamage, finalDamage: Math.round(baseDamage.finalDamage * multiplyEffect.damageMultiplier) }
+        : baseDamage;
+
       return {
         ...state,
         phase: 'animating-attack',
@@ -95,13 +110,33 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
           activeAttack: attackKey,
           animationElapsed: 0,
         },
-        // Pre-compute damage so timer hook knows hit reaction
-        lastDamage: calculateDamage(
-          attacker.entry,
-          action.attackIndex,
-          state[defenderSide].entry,
-        ),
+        lastDamage,
         lastDamageTarget: defenderSide,
+      };
+    }
+
+    case 'HIT_REACTION_START': {
+      if (state.phase !== 'animating-attack') return state;
+
+      const defenderSide = state.turn === 'left' ? 'right' : 'left';
+      const defender = state[defenderSide];
+      const attacker = state[state.turn];
+      const reaction = hitReactionForDamage(state.lastDamage!);
+
+      // Read hitParticles from the attacker's attack descriptor
+      const attackKey = attacker.activeAttack;
+      const effectConfig = attackKey
+        ? attacker.entry.definition.attackEffects[attackKey]
+        : undefined;
+
+      return {
+        ...state,
+        [defenderSide]: {
+          ...defender,
+          hitReaction: reaction,
+          animationElapsed: 0,
+          incomingParticles: effectConfig?.hitParticles ?? [],
+        },
       };
     }
 
@@ -119,8 +154,8 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
         : undefined;
 
       if (effectConfig?.skipHitAnimation) {
-        // Build status effects if the attack applies one
-        const newEffects = effectConfig.statusEffect
+        // Build status effects if the attack applies one to defender
+        const newDefenderEffects = effectConfig.statusEffect
           ? [
               ...defender.statusEffects,
               {
@@ -128,9 +163,24 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
                 expiresAt: Date.now() + effectConfig.statusEffect.durationMs,
                 preventsAttack: effectConfig.statusEffect.preventsAttack,
                 tickDamage: effectConfig.statusEffect.tickDamage,
+                damageMultiplier: effectConfig.statusEffect.damageMultiplier,
               },
             ]
           : defender.statusEffects;
+
+        // Build self status effects if the attack applies one to attacker
+        const newAttackerEffects = effectConfig.selfStatusEffect
+          ? [
+              ...attacker.statusEffects,
+              {
+                type: effectConfig.selfStatusEffect.type,
+                expiresAt: Date.now() + effectConfig.selfStatusEffect.durationMs,
+                preventsAttack: effectConfig.selfStatusEffect.preventsAttack,
+                tickDamage: effectConfig.selfStatusEffect.tickDamage,
+                damageMultiplier: effectConfig.selfStatusEffect.damageMultiplier,
+              },
+            ]
+          : attacker.statusEffects;
 
         return {
           ...state,
@@ -139,52 +189,35 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
             ...attacker,
             activeAttack: null,
             animationElapsed: 0,
+            statusEffects: newAttackerEffects,
           },
           [defenderSide]: {
             ...defender,
-            statusEffects: newEffects,
+            statusEffects: newDefenderEffects,
           },
           lastDamage: null,
           lastDamageTarget: null,
         };
       }
 
-      const reaction = hitReactionForDamage(state.lastDamage!);
-
-      return {
-        ...state,
-        phase: 'animating-hit',
-        // Clear attacker's animation
-        [state.turn]: {
-          ...attacker,
-          activeAttack: null,
-          animationElapsed: 0,
-        },
-        // Start defender's hit reaction
-        [defenderSide]: {
-          ...defender,
-          hitReaction: reaction,
-          animationElapsed: 0,
-        },
-      };
-    }
-
-    case 'HIT_ANIMATION_COMPLETE': {
-      if (state.phase !== 'animating-hit') return state;
-
-      const defenderSide: Side = state.turn === 'left' ? 'right' : 'left';
-      const defender = state[defenderSide];
+      // Normal attack: apply damage directly (hit reaction already started mid-attack)
       const damage = state.lastDamage!;
       const newHp = Math.max(0, defender.currentHp - damage.finalDamage);
 
       return {
         ...state,
         phase: 'resolving',
+        [state.turn]: {
+          ...attacker,
+          activeAttack: null,
+          animationElapsed: 0,
+        },
         [defenderSide]: {
           ...defender,
           hitReaction: null,
           animationElapsed: 0,
           currentHp: newHp,
+          incomingParticles: [],
         },
       };
     }
@@ -249,27 +282,29 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
     }
 
     case 'TICK_ELAPSED': {
-      // Update animation elapsed on current animating player
+      // Update animation elapsed on animating players
       if (state.phase === 'animating-attack') {
         const attacker = state[state.turn];
-        return {
+        const defenderSide = state.turn === 'left' ? 'right' : 'left';
+        const defender = state[defenderSide];
+
+        const next: ArenaState = {
           ...state,
           [state.turn]: {
             ...attacker,
             animationElapsed: attacker.animationElapsed + action.delta,
           },
         };
-      }
-      if (state.phase === 'animating-hit') {
-        const defenderSide = state.turn === 'left' ? 'right' : 'left';
-        const defender = state[defenderSide];
-        return {
-          ...state,
-          [defenderSide]: {
+
+        // Also tick defender if hit reaction is active (overlapping animations)
+        if (defender.hitReaction) {
+          (next as any)[defenderSide] = {
             ...defender,
             animationElapsed: defender.animationElapsed + action.delta,
-          },
-        };
+          };
+        }
+
+        return next;
       }
       return state;
     }

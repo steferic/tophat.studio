@@ -5,13 +5,16 @@ import type { ArenaState } from './types';
 
 /**
  * Plays attack sounds when animating-attack begins,
- * and hit impact sounds when animating-hit begins.
+ * and hit impact sounds when hit reaction starts mid-attack.
  */
 export function useArenaAudio(state: ArenaState) {
   const prevPhaseRef = useRef(state.phase);
+  const prevLeftHitRef = useRef(state.left.hitReaction);
+  const prevRightHitRef = useRef(state.right.hitReaction);
   const prevLeftEffectsRef = useRef(state.left.statusEffects);
   const prevRightEffectsRef = useRef(state.right.statusEffects);
 
+  // Attack started → play attack sound + voice line from descriptor
   useEffect(() => {
     const prev = prevPhaseRef.current;
     const curr = state.phase;
@@ -19,7 +22,6 @@ export function useArenaAudio(state: ArenaState) {
 
     if (prev === curr) return;
 
-    // Attack started → play attack sound + voice line from descriptor
     if (curr === 'animating-attack') {
       const attacker = state[state.turn];
       const attackKey = attacker.activeAttack;
@@ -31,18 +33,26 @@ export function useArenaAudio(state: ArenaState) {
         }
       }
     }
+  }, [state.phase, state.turn, state]);
 
-    // Hit started → play impact sound
-    if (curr === 'animating-hit') {
-      const defenderSide = state.turn === 'left' ? 'right' : 'left';
-      const defender = state[defenderSide];
-      if (defender.hitReaction === 'hit-heavy') {
+  // Hit reaction started → play impact sound
+  useEffect(() => {
+    const defenderSide = state.turn === 'left' ? 'right' : 'left';
+    const prevHit = defenderSide === 'left' ? prevLeftHitRef.current : prevRightHitRef.current;
+    const currHit = state[defenderSide].hitReaction;
+
+    prevLeftHitRef.current = state.left.hitReaction;
+    prevRightHitRef.current = state.right.hitReaction;
+
+    // Play sound when hit reaction transitions from null to a value
+    if (!prevHit && currHit) {
+      if (currHit === 'hit-heavy') {
         playHitHeavySound();
       } else {
         playHitLightSound();
       }
     }
-  }, [state.phase, state.turn, state]);
+  }, [state.left.hitReaction, state.right.hitReaction, state.turn]);
 
   // Play cube break sound when a status effect is removed
   useEffect(() => {

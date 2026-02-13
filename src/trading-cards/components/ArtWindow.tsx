@@ -3,7 +3,8 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { sweepAngle, artShimmer, artShimmerOpacity, artWindowGlow } from '../styles/holo';
 import { computeArtGlow } from '../engines/glowEngine';
-import type { ArtGlowDescriptor } from '../arena/descriptorTypes';
+import { CameraAnimator } from '../effects/CameraAnimator';
+import type { ArtGlowDescriptor, CameraMovementDescriptor } from '../arena/descriptorTypes';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
 interface SavedCamera {
@@ -44,6 +45,8 @@ const CameraManager: React.FC<{
   return null;
 };
 
+const DEFAULT_BG = 'linear-gradient(180deg, #b5ddf0 0%, #7ec4e2 50%, #5aafcf 100%)';
+
 interface ArtWindowProps {
   frame: number;
   fps: number;
@@ -56,6 +59,11 @@ interface ArtWindowProps {
   cameraId?: string;
   /** Optional art glow descriptor — when provided, uses engine instead of legacy artWindowGlow */
   artGlowDescriptor?: ArtGlowDescriptor;
+  /** CSS background override for the art window */
+  artBackground?: string;
+  disableHolo?: boolean;
+  /** Camera movement descriptor for attack animations */
+  cameraMovement?: CameraMovementDescriptor;
 }
 
 export const ArtWindow: React.FC<ArtWindowProps> = ({
@@ -67,6 +75,9 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
   interactive = false,
   cameraId = 'default',
   artGlowDescriptor,
+  artBackground = DEFAULT_BG,
+  disableHolo = false,
+  cameraMovement,
 }) => {
   const artAngle = sweepAngle(frame, fps, 1, [-45, 315]);
   const shimmerOpacity = artShimmerOpacity(frame, fps);
@@ -109,7 +120,7 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
         height: 180,
         border: '2px solid rgba(180,155,60,0.5)',
         borderRadius: 3,
-        background: 'linear-gradient(180deg, #b5ddf0 0%, #7ec4e2 50%, #5aafcf 100%)',
+        background: artBackground,
         overflow: 'hidden',
         boxShadow: glowShadow,
         position: 'relative',
@@ -126,18 +137,28 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
             <CameraManager controlsRef={controlsRef} savedCamera={savedCamera} />
           </>
         )}
+        {interactive && (
+          <CameraAnimator
+            descriptor={cameraMovement}
+            active={activeAttack !== null}
+            attackElapsed={attackElapsed}
+            controlsRef={controlsRef}
+          />
+        )}
         {children}
       </Canvas>
       {/* Holographic shimmer over art window */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          background: artShimmer(artAngle, shimmerOpacity),
-          pointerEvents: 'none',
-          zIndex: 1,
-        }}
-      />
+      {!disableHolo && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: artShimmer(artAngle, shimmerOpacity),
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      )}
       {/* Save / Reset camera buttons */}
       {interactive && (
         <div

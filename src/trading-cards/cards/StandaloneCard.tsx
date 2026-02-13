@@ -118,7 +118,7 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
         background: 'radial-gradient(ellipse at center, #1a1a2e 0%, #0d0d1a 100%)',
       }}
     >
-      <CardShell frame={frame} fps={fps} boxShadow={cardShadow} transform={cardTransform}>
+      <CardShell frame={frame} fps={fps} boxShadow={cardShadow} transform={cardTransform} disableHolo={definition.disableHolo}>
         <CardHeader
           frame={frame}
           fps={fps}
@@ -126,6 +126,7 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
           name={cardData.name}
           hp={cardData.hp}
           type={cardData.type}
+          disableHolo={definition.disableHolo}
         />
 
         <ArtWindow
@@ -136,6 +137,9 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
           interactive
           cameraId={definition.cameraId}
           artGlowDescriptor={activeAttack ? definition.attackEffects[activeAttack]?.artGlow : undefined}
+          artBackground={definition.artBackground}
+          disableHolo={definition.disableHolo}
+          cameraMovement={activeAttack ? definition.attackEffects[activeAttack]?.camera : undefined}
         >
           <ModelScene definition={definition} activeAttack={activeAttack} debug />
         </ArtWindow>
@@ -156,15 +160,17 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
             overflow: 'hidden',
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              inset: '-80%',
-              background: attacksShimmer(attacksAngle),
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}
-          />
+          {!definition.disableHolo && (
+            <div
+              style={{
+                position: 'absolute',
+                inset: '-80%',
+                background: attacksShimmer(attacksAngle),
+                pointerEvents: 'none',
+                zIndex: 0,
+              }}
+            />
+          )}
           {cardData.attacks.map((atk, i) => (
             <React.Fragment key={i}>
               {i > 0 && <AttackDivider />}
@@ -187,8 +193,9 @@ export const StandaloneCard: React.FC<StandaloneCardProps> = ({ cardId }) => {
           weakness={cardData.weakness}
           resistance={cardData.resistance}
           retreatCost={cardData.retreatCost}
+          disableHolo={definition.disableHolo}
         />
-        <FlavorText frame={frame} fps={fps} text={cardData.flavorText} />
+        <FlavorText frame={frame} fps={fps} text={cardData.flavorText} disableHolo={definition.disableHolo} />
         <CardFooter illustrator={cardData.illustrator} cardNumber={cardData.cardNumber} />
       </CardShell>
     </div>
