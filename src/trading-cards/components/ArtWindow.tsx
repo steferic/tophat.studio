@@ -198,7 +198,9 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
           />
         )}
         {children}
-        {visualFilter && visualFilter !== 'blue-tint' && <VisualEffectPass filter={visualFilter} />}
+        {visualFilter && visualFilter !== 'blue-tint' && (
+          <VisualEffectPass filters={[visualFilter]} allParams={{}} />
+        )}
       </Canvas>
       {interactive && <FpsMeter />}
       {/* Holographic shimmer over art window */}

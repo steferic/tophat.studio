@@ -103,7 +103,8 @@ const FpsMeter: React.FC = () => {
 
 export interface WorkshopViewportProps {
   definition: CardDefinition;
-  visualFilter: string | null;
+  activeFilters: string[];
+  filterParams: Record<string, Record<string, any>>;
   manualCameraMovement: CameraMovementDescriptor | null;
   statusEffects: StatusEffect[];
   activeItems: ActiveItem[];
@@ -120,11 +121,15 @@ export interface WorkshopViewportProps {
   // Decomposition
   activeDecomposition: string | null;
   decompositionProgress: number;
+  // Morphs
+  activeMorphs?: string[];
+  morphParams?: Record<string, Record<string, any>>;
 }
 
 export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
   definition,
-  visualFilter,
+  activeFilters,
+  filterParams,
   manualCameraMovement,
   statusEffects,
   activeItems,
@@ -139,6 +144,8 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
   attackCameraMovement,
   activeDecomposition,
   decompositionProgress,
+  activeMorphs = [],
+  morphParams = {},
 }) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const cameraId = `workshop-${definition.id}`;
@@ -199,6 +206,8 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
             isEvolving={isEvolving}
             isEvolved={isEvolved}
             side="left"
+            activeMorphs={activeMorphs}
+            morphParams={morphParams}
           />
         </group>
         {activeDecomposition && (
@@ -223,13 +232,17 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
             />
           );
         })}
-        {visualFilter && visualFilter !== 'blue-tint' && <VisualEffectPass filter={visualFilter} />}
+        {(() => {
+          const effectFilters = activeFilters.filter((f) => f !== 'blue-tint');
+          if (effectFilters.length === 0) return null;
+          return <VisualEffectPass filters={effectFilters} allParams={filterParams} />;
+        })()}
       </Canvas>
 
       <FpsMeter />
 
       {/* Blue tint overlay */}
-      {visualFilter === 'blue-tint' && (
+      {activeFilters.includes('blue-tint') && (
         <div
           style={{
             position: 'absolute',

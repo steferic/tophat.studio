@@ -1,38 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import type { BattleCardEntry } from '../arena/types';
 import type { CameraPreset, ShakePattern, ItemDescriptor, ActiveItem, ItemMovementPattern } from '../arena/descriptorTypes';
-
-// ── Data sources (imported at module level) ────────────────
-
-const VISUAL_FILTERS = [
-  'blue-tint',
-  'dither',
-  'pixelation',
-  'chromatic-aberration',
-  'scanline',
-  'noise',
-  'vignette',
-  'bloom',
-  'glitch',
-  'dot-screen',
-  'sepia',
-  'grayscale',
-  'hue-shift',
-  'night-vision',
-  'thermal',
-  'posterize',
-  'crt',
-  'vhs',
-  'invert',
-  'edge-detect',
-  'underwater',
-  'duotone',
-  'hologram',
-  'kaleidoscope',
-  'retro-lcd',
-  'emboss',
-  'ripple',
-] as const;
+import { FILTER_IDS, getFilterDef } from './filterRegistry';
+import { MORPH_IDS, getMorphDef } from './morphRegistry';
+import { FilterParamControls } from './FilterParamControls';
 
 const CAMERA_PRESETS: CameraPreset[] = [
   'close-up',
@@ -172,7 +143,7 @@ export interface WorkshopPanelProps {
   activeItems: ActiveItem[];
 
   // Current state
-  activeFilter: string | null;
+  activeFilters: string[];
   activeStatuses: string[];
   isDancing: boolean;
   isEvolving: boolean;
@@ -187,7 +158,7 @@ export interface WorkshopPanelProps {
 
   // Callbacks
   onSelectCard: (index: number) => void;
-  onSelectFilter: (filter: string | null) => void;
+  onToggleFilter: (filter: string) => void;
   onTriggerCamera: (preset: CameraPreset) => void;
   onToggleStatus: (id: string) => void;
   onToggleItem: (itemId: string) => void;
@@ -206,6 +177,16 @@ export interface WorkshopPanelProps {
   // Decomposition
   activeDecomposition: string | null;
   onToggleDecomposition: (type: string) => void;
+
+  // Filter params
+  filterParams: Record<string, Record<string, any>>;
+  onChangeFilterParam: (filterId: string, key: string, value: any) => void;
+
+  // Morphs
+  activeMorphs: string[];
+  morphParams: Record<string, Record<string, any>>;
+  onToggleMorph: (morphId: string) => void;
+  onChangeMorphParam: (morphId: string, key: string, value: any) => void;
 }
 
 export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
@@ -214,7 +195,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   statusBlueprints,
   allItems,
   activeItems,
-  activeFilter,
+  activeFilters,
   activeStatuses,
   isDancing,
   isEvolving,
@@ -225,7 +206,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   activeAttackKey,
   attackMode,
   onSelectCard,
-  onSelectFilter,
+  onToggleFilter,
   onTriggerCamera,
   onToggleStatus,
   onToggleItem,
@@ -242,6 +223,12 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   onTakeAttack,
   activeDecomposition,
   onToggleDecomposition,
+  filterParams,
+  onChangeFilterParam,
+  activeMorphs,
+  morphParams,
+  onToggleMorph,
+  onChangeMorphParam,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
@@ -268,7 +255,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
     [attacks, q],
   );
 
-  const filteredFilters = filterItems(VISUAL_FILTERS);
+  const filteredFilters = filterItems(FILTER_IDS);
   const filteredCameras = filterItems(CAMERA_PRESETS);
   const filteredStatuses = useMemo(
     () =>
@@ -288,6 +275,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         : allItems,
     [allItems, q],
   );
+  const filteredMorphs = filterItems(MORPH_IDS);
   const filteredShakes = filterItems(SHAKE_PATTERNS);
   const filteredSynths = filterItems(SYNTH_PRESET_KEYS);
   const filteredDecompositions = filterItems(DECOMPOSITION_EFFECTS);
@@ -411,7 +399,41 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </div>
       </Section>
 
-      {/* 2. Attacks */}
+      {/* 2. Morphs */}
+      {filteredMorphs.length > 0 && (
+        <Section title="Morphs" count={filteredMorphs.length}>
+          {filteredMorphs.map((key) => {
+            const def = getMorphDef(key);
+            return (
+              <button
+                key={key}
+                onClick={() => onToggleMorph(key)}
+                style={activeMorphs.includes(key) ? chipOn : chipOff}
+              >
+                {def?.displayName ?? key}
+              </button>
+            );
+          })}
+          {activeMorphs.map((morphId) => {
+            const def = getMorphDef(morphId);
+            if (!def || def.params.length === 0) return null;
+            return (
+              <div key={morphId} style={{ width: '100%' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(100,180,255,0.8)', padding: '6px 0 2px' }}>
+                  {def.displayName}
+                </div>
+                <FilterParamControls
+                  filterDef={def}
+                  values={morphParams[morphId] ?? {}}
+                  onChange={(key, value) => onChangeMorphParam(morphId, key, value)}
+                />
+              </div>
+            );
+          })}
+        </Section>
+      )}
+
+      {/* 3. Attacks */}
       {filteredAttacks.length > 0 && (
         <Section title="Attacks" count={filteredAttacks.length}>
           {filteredAttacks.map((atk) => {
@@ -462,15 +484,34 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
       {/* 3. Visual Filters */}
       {filteredFilters.length > 0 && (
         <Section title="Visual Filters" count={filteredFilters.length}>
-          {filteredFilters.map((key) => (
-            <button
-              key={key}
-              onClick={() => onSelectFilter(activeFilter === key ? null : key)}
-              style={activeFilter === key ? chipOn : chipOff}
-            >
-              {key}
-            </button>
-          ))}
+          {filteredFilters.map((key) => {
+            const def = getFilterDef(key);
+            return (
+              <button
+                key={key}
+                onClick={() => onToggleFilter(key)}
+                style={activeFilters.includes(key) ? chipOn : chipOff}
+              >
+                {def?.displayName ?? key}
+              </button>
+            );
+          })}
+          {activeFilters.map((filterId) => {
+            const def = getFilterDef(filterId);
+            if (!def || def.params.length === 0) return null;
+            return (
+              <div key={filterId} style={{ width: '100%' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(100,180,255,0.8)', padding: '6px 0 2px' }}>
+                  {def.displayName}
+                </div>
+                <FilterParamControls
+                  filterDef={def}
+                  values={filterParams[filterId] ?? {}}
+                  onChange={(key, value) => onChangeFilterParam(filterId, key, value)}
+                />
+              </div>
+            );
+          })}
         </Section>
       )}
 

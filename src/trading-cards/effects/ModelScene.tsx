@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { TeleportClone } from './TeleportClone';
 import { HoloLight } from './HoloLight';
 import { StatusEffectScene } from './StatusEffectScene';
+import { MorphEffect } from './MorphEffect';
 import { LightDispatcher } from './lights/LightDispatcher';
 import { ParticleDispatcher } from './particles/ParticleDispatcher';
 import { useModelBounds } from './useModelBounds';
@@ -101,6 +102,9 @@ interface ModelSceneProps {
   teleportAttacker?: TeleportAttacker | null;
   teleportElapsed?: number;
   side?: 'left' | 'right';
+  /** Morph effects */
+  activeMorphs?: string[];
+  morphParams?: Record<string, Record<string, any>>;
 }
 
 /**
@@ -121,6 +125,8 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
   teleportAttacker = null,
   teleportElapsed = 0,
   side,
+  activeMorphs = [],
+  morphParams = {},
 }) => {
   const { model, attackEffects } = definition;
   const ModelComponent = model.ModelComponent;
@@ -128,7 +134,8 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
 
   // Load the GLB scene to compute bounds
   const { scene } = useGLTF(model.modelPath);
-  const { boxSize } = useModelBounds(scene);
+  const { boxSize, centerOffset } = useModelBounds(scene);
+  const hasMorphs = activeMorphs.length > 0;
 
   // ── Model normalization ───────────────────────────────────
   // All models are normalized to the same visual size (NORM_UNIT),
@@ -155,16 +162,29 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
       {/* Normalization wrapper — model component animates at its internal baseScale,
           this group corrects the final visual size so all models are normalized. */}
       <group scale={normWrapperScale}>
-        <ModelComponent
-          activeAttack={activeAttack}
-          hitReaction={hitReaction}
-          isCubed={isCubed}
-          isDancing={isDancing}
-          isEvolving={isEvolving}
-          isEvolved={isEvolved}
-          debug={debug}
-          animatedGroupRef={modelGroupRef}
-        />
+        {/* Original model — hidden when morphs active, but useFrame still runs */}
+        <group visible={!hasMorphs}>
+          <ModelComponent
+            activeAttack={activeAttack}
+            hitReaction={hitReaction}
+            isCubed={isCubed}
+            isDancing={isDancing}
+            isEvolving={isEvolving}
+            isEvolved={isEvolved}
+            debug={debug}
+            animatedGroupRef={modelGroupRef}
+          />
+        </group>
+        {/* Morphed clone — tracks source transforms */}
+        {hasMorphs && (
+          <MorphEffect
+            scene={scene}
+            sourceRef={modelGroupRef}
+            activeMorphs={activeMorphs}
+            morphParams={morphParams}
+            centerOffset={centerOffset}
+          />
+        )}
         {isEvolved && definition.evolvedEffects && (
           <>
             <pointLight

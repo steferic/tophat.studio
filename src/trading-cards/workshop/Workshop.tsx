@@ -5,6 +5,8 @@ import { SYNTH_PRESETS } from '../audio/synthPresets';
 import { getAllItems } from '../items';
 import { computeCardShake } from '../engines/cardShakeEngine';
 import { playAttackSound } from '../engines/synthEngine';
+import { getFilterDef, getFilterDefaults } from './filterRegistry';
+import { getMorphDef, getMorphDefaults } from './morphRegistry';
 import { WorkshopViewport } from './WorkshopViewport';
 import { WorkshopPanel } from './WorkshopPanel';
 import type { CameraPreset, ShakePattern, CameraMovementDescriptor, AttackParticleDescriptor, ActiveItem, ItemMovementPattern } from '../arena/descriptorTypes';
@@ -30,8 +32,13 @@ export const Workshop: React.FC = () => {
   const [isEvolving, setIsEvolving] = useState(false);
   const [isEvolved, setIsEvolved] = useState(false);
 
-  // Visual filter
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  // Visual filters (multi-select)
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [filterParams, setFilterParams] = useState<Record<string, Record<string, any>>>({});
+
+  // Model morphs (multi-select)
+  const [activeMorphs, setActiveMorphs] = useState<string[]>([]);
+  const [morphParams, setMorphParams] = useState<Record<string, Record<string, any>>>({});
 
   // Camera — increment trigger counter to re-fire via new descriptor ref
   const [cameraPreset, setCameraPreset] = useState<CameraPreset | null>(null);
@@ -92,7 +99,8 @@ export const Workshop: React.FC = () => {
     setSelectedCardIndex(index);
     setActiveStatuses([]);
     setActiveItems([]);
-    setActiveFilter(null);
+    setActiveFilters([]);
+    setActiveMorphs([]);
     setIsDancing(false);
     setIsEvolving(false);
     setIsEvolved(false);
@@ -107,8 +115,42 @@ export const Workshop: React.FC = () => {
     setAttackElapsed(0);
   }, []);
 
-  const handleSelectFilter = useCallback((filter: string | null) => {
-    setActiveFilter(filter);
+  const handleToggleFilter = useCallback((filter: string) => {
+    setActiveFilters((prev) =>
+      prev.includes(filter) ? prev.filter((f) => f !== filter) : [...prev, filter],
+    );
+    if (!filterParams[filter]) {
+      const def = getFilterDef(filter);
+      if (def) {
+        setFilterParams((prev) => ({ ...prev, [filter]: getFilterDefaults(filter) }));
+      }
+    }
+  }, [filterParams]);
+
+  const handleChangeFilterParam = useCallback((filterId: string, key: string, value: any) => {
+    setFilterParams((prev) => ({
+      ...prev,
+      [filterId]: { ...(prev[filterId] ?? {}), [key]: value },
+    }));
+  }, []);
+
+  const handleToggleMorph = useCallback((morphId: string) => {
+    setActiveMorphs((prev) =>
+      prev.includes(morphId) ? prev.filter((m) => m !== morphId) : [...prev, morphId],
+    );
+    if (!morphParams[morphId]) {
+      const def = getMorphDef(morphId);
+      if (def) {
+        setMorphParams((prev) => ({ ...prev, [morphId]: getMorphDefaults(morphId) }));
+      }
+    }
+  }, [morphParams]);
+
+  const handleChangeMorphParam = useCallback((morphId: string, key: string, value: any) => {
+    setMorphParams((prev) => ({
+      ...prev,
+      [morphId]: { ...(prev[morphId] ?? {}), [key]: value },
+    }));
   }, []);
 
   const handleTriggerCamera = useCallback((preset: CameraPreset) => {
@@ -320,7 +362,7 @@ export const Workshop: React.FC = () => {
         statusBlueprints={STATUS_BLUEPRINTS}
         allItems={ALL_ITEMS}
         activeItems={activeItems}
-        activeFilter={activeFilter}
+        activeFilters={activeFilters}
         activeStatuses={activeStatuses}
         isDancing={isDancing}
         isEvolving={isEvolving}
@@ -331,7 +373,7 @@ export const Workshop: React.FC = () => {
         activeAttackKey={activeAttackKey}
         attackMode={attackMode}
         onSelectCard={handleSelectCard}
-        onSelectFilter={handleSelectFilter}
+        onToggleFilter={handleToggleFilter}
         onTriggerCamera={handleTriggerCamera}
         onToggleStatus={handleToggleStatus}
         onToggleItem={handleToggleItem}
@@ -348,6 +390,12 @@ export const Workshop: React.FC = () => {
         onTakeAttack={handleTakeAttack}
         activeDecomposition={activeDecomposition}
         onToggleDecomposition={handleToggleDecomposition}
+        filterParams={filterParams}
+        onChangeFilterParam={handleChangeFilterParam}
+        activeMorphs={activeMorphs}
+        morphParams={morphParams}
+        onToggleMorph={handleToggleMorph}
+        onChangeMorphParam={handleChangeMorphParam}
       />
 
       {/* Spacer for panel width */}
@@ -355,7 +403,8 @@ export const Workshop: React.FC = () => {
 
       <WorkshopViewport
         definition={definition}
-        visualFilter={activeFilter}
+        activeFilters={activeFilters}
+        filterParams={filterParams}
         manualCameraMovement={derivedCameraDesc}
         statusEffects={statusEffects}
         activeItems={activeItems}
@@ -370,6 +419,8 @@ export const Workshop: React.FC = () => {
         attackCameraMovement={attackViewportProps.attackCameraMovement}
         activeDecomposition={activeDecomposition}
         decompositionProgress={decompositionProgress}
+        activeMorphs={activeMorphs}
+        morphParams={morphParams}
       />
     </div>
   );
