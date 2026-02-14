@@ -29,6 +29,12 @@ export const pengoDefinition: CardDefinition = {
         description:
           'Discard all Energy. The Defending Pok\u00e9mon and all benched Pok\u00e9mon are now Burned.',
       },
+      {
+        name: 'Instant Transmission',
+        energyCost: ['water', 'colorless'],
+        damage: 120,
+        description: 'Teleport behind the opponent and strike from within their domain.',
+      },
     ],
     weakness: { type: 'fire', modifier: '+20' },
     resistance: { type: 'fighting', modifier: '-20' },
@@ -38,11 +44,12 @@ export const pengoDefinition: CardDefinition = {
     illustrator: 'TopHat Software',
     cardNumber: '001/001 \u2605\u2605\u2605',
   },
-  attackKeys: ['ice-slide', 'glacier-crush', 'inferno'],
+  attackKeys: ['ice-slide', 'glacier-crush', 'inferno', 'instant-transmission'],
   attackDurations: {
     'ice-slide': 800,
     'glacier-crush': 1000,
     inferno: 1800,
+    'instant-transmission': 1800,
   },
   attackEffects: {
     'ice-slide': {
@@ -134,6 +141,27 @@ export const pengoDefinition: CardDefinition = {
       particles: [{ particleSystem: 'fire', mode: 'default' }],
       hitParticles: [{ particleSystem: 'fire', mode: 'default' }],
     },
+    'instant-transmission': {
+      cardShake: { pattern: 'pulse', duration: 2.0, intensity: 0.6 },
+      cardGlow: {
+        color: [100, 200, 255],
+        radius: 40,
+        maxOpacity: 0.5,
+        fadeProfile: 'hold-then-fade',
+        layers: [
+          { color: [255, 255, 255], radius: 20, maxOpacity: 0.7 },
+        ],
+      },
+      artGlow: {
+        color: [100, 200, 255],
+        radius: 50,
+        maxOpacity: 0.6,
+        fadeIn: 0.1,
+        holdDuration: 0.5,
+        fadeOut: 1.0,
+      },
+      audio: { type: 'file', filePath: 'audio/sfx/instant-transmission.mp3', volume: 0.85 },
+    },
   },
   model: {
     modelPath: 'models/pengoo.glb',
@@ -141,4 +169,7 @@ export const pengoDefinition: CardDefinition = {
     ModelComponent: PengoModel,
   },
   cameraId: 'dr-pengo',
+  evolvedEffects: {
+    color: '#3b82f6',
+  },
 };

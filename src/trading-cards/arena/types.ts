@@ -1,5 +1,5 @@
 import type { CardData, EnergyType } from '../types';
-import type { CardDefinition, AttackParticleDescriptor } from './descriptorTypes';
+import type { CardDefinition, AttackParticleDescriptor, EvolvedEffectDescriptor } from './descriptorTypes';
 
 // ── Phase flow ──────────────────────────────────────────────
 // selecting → animating-attack → resolving → turn-end → selecting
@@ -35,12 +35,22 @@ export interface BattleCardEntry {
 // ── Status effects ──────────────────────────────────────────
 
 export interface StatusEffect {
-  type: string;
+  /** Key into STATUS_REGISTRY */
+  blueprintId: string;
+  /** Absolute timestamp when the effect expires */
   expiresAt: number;
-  preventsAttack: boolean;
-  tickDamage: number;
-  /** Multiplier applied to this player's attack damage while active */
-  damageMultiplier?: number;
+  /** When the effect was applied */
+  appliedAt: number;
+  /** Number of stacks (1 for non-stackable) */
+  stacks: number;
+  /** Timestamp of last tick (for tick damage/heal) */
+  lastTickAt: number;
+  /** Which attack caused this (for diagnostics) */
+  sourceAttackKey?: string;
+
+  // ── Per-instance overrides (from InflictStatusDescriptor) ──
+  /** Overridden tick damage (if different from blueprint) */
+  tickDamageOverride?: number;
 }
 
 // ── Player state ────────────────────────────────────────────
@@ -75,6 +85,17 @@ export interface DamageEvent {
   resisted: boolean;
 }
 
+// ── Teleport state ─────────────────────────────────────────
+
+export interface TeleportAttacker {
+  modelPath: string;
+  side: Side;
+  baseScale: number;
+  relativeSize: number;
+  isEvolved: boolean;
+  evolvedEffects?: EvolvedEffectDescriptor;
+}
+
 // ── Arena state ─────────────────────────────────────────────
 
 export interface ArenaState {
@@ -86,17 +107,20 @@ export interface ArenaState {
   lastDamageTarget: Side | null;
   turnNumber: number;
   winner: Side | null;
+  teleportAttacker: TeleportAttacker | null;
 }
 
 // ── Arena actions ───────────────────────────────────────────
 
 export type ArenaAction =
-  | { type: 'SELECT_ATTACK'; attackIndex: number }
+  | { type: 'SELECT_ATTACK'; attackIndex: number; isEvolved?: boolean }
   | { type: 'HIT_REACTION_START' }
   | { type: 'ATTACK_ANIMATION_COMPLETE' }
   | { type: 'DAMAGE_RESOLVED' }
   | { type: 'END_TURN' }
   | { type: 'SKIP_TURN' }
-  | { type: 'STATUS_EXPIRED'; side: Side; effectType: string }
+  | { type: 'STATUS_EXPIRED'; side: Side; blueprintId: string }
+  | { type: 'STATUS_TICK_DAMAGE'; side: Side; blueprintId: string; damage: number }
+  | { type: 'STATUS_TICK_HEAL'; side: Side; amount: number }
   | { type: 'REMATCH' }
   | { type: 'TICK_ELAPSED'; delta: number };

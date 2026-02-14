@@ -131,4 +131,7 @@ export const speepoDefinition: CardDefinition = {
   artBackground: 'linear-gradient(180deg, #c7dff0 0%, #5b9bd5 50%, #2a5f9e 100%)',
   disableHolo: true,
   danceSong: { filePath: '/audio/songs/speepo.mp3', volume: 0.8 },
+  evolvedEffects: {
+    color: '#facc15',
+  },
 };

@@ -2,33 +2,39 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
+import { TeleportClone } from './TeleportClone';
 import { HoloLight } from './HoloLight';
-import { CubePrison } from './CubePrison';
+import { StatusEffectScene } from './StatusEffectScene';
 import { LightDispatcher } from './lights/LightDispatcher';
 import { ParticleDispatcher } from './particles/ParticleDispatcher';
 import { useModelBounds } from './useModelBounds';
-import type { CardDefinition, AttackParticleDescriptor } from '../arena/descriptorTypes';
+import type { CardDefinition, AttackParticleDescriptor, EvolvedEffectDescriptor } from '../arena/descriptorTypes';
+import type { TeleportAttacker, StatusEffect } from '../arena/types';
 
 // ── Evolved Aura: Ghost Clone + Halo Ring ────────────────
 
-/** Transparent blue clone that tracks the model's animated group each frame */
+/** Transparent clone that tracks the model's animated group each frame */
 const GhostClone: React.FC<{
   scene: THREE.Object3D;
-  centerOffset: THREE.Vector3;
   sourceRef: React.MutableRefObject<THREE.Group | null>;
-  scaleMultiplier: number;
-}> = ({ scene, centerOffset, sourceRef, scaleMultiplier }) => {
+  effects: EvolvedEffectDescriptor;
+}> = ({ scene, sourceRef, effects }) => {
   const groupRef = useRef<THREE.Group>(null!);
+  const auraOpacity = effects.auraOpacity ?? 0.15;
+  const auraScale = effects.auraScale ?? 1.25;
 
+  // Clone the scene so we compute bounds on an unparented copy.
+  // The shared `scene` from useGLTF is parented to the model's scaled group,
+  // which pollutes matrixWorld and skews the bounding box center.
   const ghostScene = useMemo(() => {
     const clone = scene.clone(true);
     clone.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.material = new THREE.MeshBasicMaterial({
-          color: '#3b82f6',
+          color: effects.color,
           transparent: true,
-          opacity: 0.15,
+          opacity: auraOpacity,
           depthWrite: false,
           side: THREE.FrontSide,
           blending: THREE.AdditiveBlending,
@@ -36,7 +42,10 @@ const GhostClone: React.FC<{
       }
     });
     return clone;
-  }, [scene]);
+  }, [scene, effects.color, auraOpacity]);
+
+  // Compute bounds from the unparented clone (no polluted parent transforms)
+  const { centerOffset } = useModelBounds(ghostScene);
 
   useFrame((state) => {
     const src = sourceRef.current;
@@ -49,15 +58,15 @@ const GhostClone: React.FC<{
 
     // Scale = source scale * multiplier, with breathing pulse
     const breathe = 1 + Math.sin(t * 2.5) * 0.04;
-    const s = scaleMultiplier * breathe;
+    const s = auraScale * breathe;
     groupRef.current.scale.set(
       src.scale.x * s,
       src.scale.y * s,
       src.scale.z * s,
     );
 
-    // Shimmer opacity
-    const pulse = 0.14 + Math.sin(t * 3) * 0.06 + Math.sin(t * 7.3) * 0.03;
+    // Shimmer opacity (scales around the configured auraOpacity)
+    const pulse = (auraOpacity - 0.01) + Math.sin(t * 3) * 0.06 + Math.sin(t * 7.3) * 0.03;
     groupRef.current.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = pulse;
@@ -80,6 +89,8 @@ interface ModelSceneProps {
   definition: CardDefinition;
   activeAttack: string | null;
   hitReaction?: HitReaction;
+  /** Active status effects on this player (drives visual overlays + isCubed) */
+  statusEffects?: StatusEffect[];
   isCubed?: boolean;
   isDancing?: boolean;
   isEvolving?: boolean;
@@ -87,6 +98,9 @@ interface ModelSceneProps {
   debug?: boolean;
   /** Particle effects from an incoming attack */
   incomingParticles?: AttackParticleDescriptor[];
+  teleportAttacker?: TeleportAttacker | null;
+  teleportElapsed?: number;
+  side?: 'left' | 'right';
 }
 
 /**
@@ -97,12 +111,16 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
   definition,
   activeAttack,
   hitReaction = null,
+  statusEffects = [],
   isCubed = false,
   isDancing = false,
   isEvolving = false,
   isEvolved = false,
   debug = false,
   incomingParticles = [],
+  teleportAttacker = null,
+  teleportElapsed = 0,
+  side,
 }) => {
   const { model, attackEffects } = definition;
   const ModelComponent = model.ModelComponent;
@@ -110,14 +128,23 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
 
   // Load the GLB scene to compute bounds
   const { scene } = useGLTF(model.modelPath);
-  const { boxSize, centerOffset } = useModelBounds(scene);
-  const scale = model.baseScale;
+  const { boxSize } = useModelBounds(scene);
 
-  // World-space bounding box size
+  // ── Model normalization ───────────────────────────────────
+  // All models are normalized to the same visual size (NORM_UNIT),
+  // then relativeSize adjusts proportions between them.
+  // NORM_UNIT = 6.25 (calibrated from pengoo.glb at baseScale 14).
+  const NORM_UNIT = 6.25;
+  const maxDim = Math.max(boxSize.x, boxSize.y, boxSize.z);
+  const relativeSize = model.relativeSize ?? 1.0;
+  const normWrapperScale = (NORM_UNIT / maxDim * relativeSize) / model.baseScale;
+
+  // World-space bounding box size (uses effective visual scale)
+  const effectiveScale = model.baseScale * normWrapperScale;
   const worldSize: [number, number, number] = [
-    boxSize.x * scale,
-    boxSize.y * scale,
-    boxSize.z * scale,
+    boxSize.x * effectiveScale,
+    boxSize.y * effectiveScale,
+    boxSize.z * effectiveScale,
   ];
 
   // Get the current attack's effect config
@@ -125,26 +152,44 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
 
   return (
     <>
-      <ModelComponent
-        activeAttack={activeAttack}
-        hitReaction={hitReaction}
-        isCubed={isCubed}
-        isDancing={isDancing}
-        isEvolving={isEvolving}
-        isEvolved={isEvolved}
-        debug={debug}
-        animatedGroupRef={modelGroupRef}
-      />
-      {isEvolved && (
-        <>
-          <pointLight color="#3b82f6" intensity={Math.PI * 3} decay={0} position={[0, 0, 0]} />
-          <GhostClone
-            scene={scene}
-            centerOffset={centerOffset}
-            sourceRef={modelGroupRef}
-            scaleMultiplier={1.25}
-          />
-        </>
+      {/* Normalization wrapper — model component animates at its internal baseScale,
+          this group corrects the final visual size so all models are normalized. */}
+      <group scale={normWrapperScale}>
+        <ModelComponent
+          activeAttack={activeAttack}
+          hitReaction={hitReaction}
+          isCubed={isCubed}
+          isDancing={isDancing}
+          isEvolving={isEvolving}
+          isEvolved={isEvolved}
+          debug={debug}
+          animatedGroupRef={modelGroupRef}
+        />
+        {isEvolved && definition.evolvedEffects && (
+          <>
+            <pointLight
+              color={definition.evolvedEffects.color}
+              intensity={definition.evolvedEffects.lightIntensity ?? Math.PI * 3}
+              decay={0}
+              position={[0, 0, 0]}
+            />
+            <GhostClone
+              scene={scene}
+              sourceRef={modelGroupRef}
+              effects={definition.evolvedEffects}
+            />
+          </>
+        )}
+      </group>
+      {teleportAttacker && side && teleportAttacker.side !== side && (
+        <TeleportClone
+          modelPath={teleportAttacker.modelPath}
+          attackElapsed={teleportElapsed}
+          baseScale={teleportAttacker.baseScale}
+          relativeSize={teleportAttacker.relativeSize}
+          isEvolved={teleportAttacker.isEvolved}
+          evolvedEffects={teleportAttacker.evolvedEffects}
+        />
       )}
       <HoloLight />
       <LightDispatcher
@@ -159,7 +204,7 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
         descriptors={incomingParticles}
         active={incomingParticles.length > 0}
       />
-      <CubePrison active={isCubed} targetSize={worldSize} />
+      <StatusEffectScene effects={statusEffects} targetSize={worldSize} modelRef={modelGroupRef} />
     </>
   );
 };

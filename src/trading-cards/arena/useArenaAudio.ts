@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { playHitLightSound, playHitHeavySound, playCubeBreakSound } from '../audio';
-import { playAttackSound, playVoiceLineFromDescriptor } from '../engines/synthEngine';
+import { playCubeBreakSound } from '../audio';
+import { playAttackSound, playVoiceLineOrCustom, playHitSoundOrCustom, playStatusReactSound } from '../engines/synthEngine';
 import type { ArenaState } from './types';
 
 /**
@@ -29,7 +29,14 @@ export function useArenaAudio(state: ArenaState) {
         const effectConfig = attacker.entry.definition.attackEffects[attackKey];
         if (effectConfig) {
           playAttackSound(effectConfig.audio);
-          playVoiceLineFromDescriptor(effectConfig.voiceLine);
+          const attackerCardId = attacker.entry.definition.id;
+          playVoiceLineOrCustom(attackerCardId, effectConfig.voiceLine);
+
+          // Instant Transmission: replay teleport SFX on return + play Ultra Instinct theme
+          if (attackKey === 'instant-transmission') {
+            setTimeout(() => playAttackSound(effectConfig.audio), 1400);
+            playAttackSound({ type: 'file', filePath: 'audio/sfx/ultra-instinct.mp3', volume: 0.5 });
+          }
         }
       }
     }
@@ -46,25 +53,31 @@ export function useArenaAudio(state: ArenaState) {
 
     // Play sound when hit reaction transitions from null to a value
     if (!prevHit && currHit) {
-      if (currHit === 'hit-heavy') {
-        playHitHeavySound();
-      } else {
-        playHitLightSound();
-      }
+      const defenderCardId = state[defenderSide].entry.definition.id;
+      playHitSoundOrCustom(defenderCardId, currHit);
     }
   }, [state.left.hitReaction, state.right.hitReaction, state.turn]);
 
-  // Play cube break sound when a status effect is removed
+  // Play cube break sound when a status effect is removed,
+  // and status-react sound when a new status effect is added
   useEffect(() => {
     const prevLeft = prevLeftEffectsRef.current;
     const prevRight = prevRightEffectsRef.current;
 
     // Check if a 'cube' status effect was removed from either side
-    if (prevLeft.some((e) => e.type === 'cube') && !state.left.statusEffects.some((e) => e.type === 'cube')) {
+    if (prevLeft.some((e) => e.blueprintId === 'cube') && !state.left.statusEffects.some((e) => e.blueprintId === 'cube')) {
       playCubeBreakSound();
     }
-    if (prevRight.some((e) => e.type === 'cube') && !state.right.statusEffects.some((e) => e.type === 'cube')) {
+    if (prevRight.some((e) => e.blueprintId === 'cube') && !state.right.statusEffects.some((e) => e.blueprintId === 'cube')) {
       playCubeBreakSound();
+    }
+
+    // Play status-react when a new status effect is added
+    if (state.left.statusEffects.length > prevLeft.length) {
+      playStatusReactSound(state.left.entry.definition.id);
+    }
+    if (state.right.statusEffects.length > prevRight.length) {
+      playStatusReactSound(state.right.entry.definition.id);
     }
 
     prevLeftEffectsRef.current = state.left.statusEffects;

@@ -6,19 +6,26 @@ interface CubePrisonProps {
   active: boolean;
   /** World-space bounding box size of the target model [w, h, d] */
   targetSize: [number, number, number];
+  color?: string;
+  edgeColor?: string;
+  opacity?: number;
 }
 
-export const CubePrison: React.FC<CubePrisonProps> = ({ active, targetSize }) => {
+export const CubePrison: React.FC<CubePrisonProps> = ({
+  active,
+  targetSize,
+  color = '#020008',
+  edgeColor = '#8844ff',
+  opacity = 0.35,
+}) => {
   const groupRef = useRef<THREE.Group>(null!);
   const meshRef = useRef<THREE.Mesh>(null!);
   const edgesRef = useRef<THREE.LineBasicMaterial>(null!);
   const spawnTime = useRef(0);
 
-  // Add some padding so the cube doesn't clip the model
+  // Use the largest dimension so the prison is always a perfect cube
   const pad = 2.3;
-  const w = targetSize[0] * pad;
-  const h = targetSize[1] * pad;
-  const d = targetSize[2] * pad;
+  const side = Math.max(targetSize[0], targetSize[1], targetSize[2]) * pad;
 
   useFrame((state) => {
     if (!active) {
@@ -38,7 +45,7 @@ export const CubePrison: React.FC<CubePrisonProps> = ({ active, targetSize }) =>
     groupRef.current.rotation.z = elapsed * 0.15;
 
     // Pulsing opacity — darker base
-    const basePulse = 0.35 + Math.sin(elapsed * 2.5) * 0.1;
+    const basePulse = opacity + Math.sin(elapsed * 2.5) * 0.1;
 
     // Late-stage shake
     const shake = Math.sin(elapsed * 18) * 0.03 * Math.max(0, elapsed - 4);
@@ -57,21 +64,21 @@ export const CubePrison: React.FC<CubePrisonProps> = ({ active, targetSize }) =>
     <group ref={groupRef} visible={false}>
       {/* Dark cube face */}
       <mesh ref={meshRef}>
-        <boxGeometry args={[w, h, d]} />
+        <boxGeometry args={[side, side, side]} />
         <meshStandardMaterial
-          color="#020008"
+          color={color}
           transparent
-          opacity={0.35}
+          opacity={opacity}
           side={THREE.DoubleSide}
           depthWrite={false}
         />
       </mesh>
       {/* Glowing purple edges */}
       <lineSegments>
-        <edgesGeometry args={[new THREE.BoxGeometry(w, h, d)]} />
+        <edgesGeometry args={[new THREE.BoxGeometry(side, side, side)]} />
         <lineBasicMaterial
           ref={edgesRef}
-          color="#8844ff"
+          color={edgeColor}
           transparent
           opacity={0.8}
           linewidth={2}

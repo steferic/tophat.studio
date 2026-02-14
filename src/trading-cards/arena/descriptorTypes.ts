@@ -47,13 +47,25 @@ export interface VoiceLineDescriptor {
 
 // ── Status Effects ──────────────────────────────────────────
 
+/** @deprecated Use InflictStatusDescriptor + statusRegistry instead */
 export interface StatusEffectDescriptor {
   type: string;
   durationMs: number;
   preventsAttack: boolean;
   tickDamage: number;
-  /** Multiplier applied to this player's attack damage while active */
   damageMultiplier?: number;
+}
+
+/** Describes a status effect to inflict via an attack */
+export interface InflictStatusDescriptor {
+  /** Blueprint ID from statusRegistry (e.g. 'burned', 'poisoned') */
+  blueprintId: string;
+  /** Override blueprint's default duration */
+  durationMs?: number;
+  /** Override blueprint's default tick damage */
+  tickDamage?: number;
+  /** Probability [0-1] the effect is applied (default 1.0 = always) */
+  chance?: number;
 }
 
 // ── Lights ──────────────────────────────────────────────────
@@ -111,7 +123,9 @@ export type CameraPreset =
   | 'zoom-punch'
   | 'dramatic-low'
   | 'pull-back'
-  | 'shake-focus';
+  | 'shake-focus'
+  | 'face-to-face'
+  | 'barrel-roll';
 
 export interface CameraMovementDescriptor {
   preset: CameraPreset;
@@ -133,9 +147,18 @@ export interface AttackEffectConfig {
   particles?: AttackParticleDescriptor[];
   /** Particles that appear on the defender's model when hit */
   hitParticles?: AttackParticleDescriptor[];
+  /** @deprecated Use inflictStatus instead */
   statusEffect?: StatusEffectDescriptor;
-  /** Status effect applied to the attacker (self-buff) */
+  /** @deprecated Use selfStatus instead */
   selfStatusEffect?: StatusEffectDescriptor;
+  /** Status effect to inflict on the defender */
+  inflictStatus?: InflictStatusDescriptor;
+  /** Status effect to apply to the attacker (self-buff) */
+  selfStatus?: InflictStatusDescriptor;
+  /** Blueprint IDs to cure/remove from the defender */
+  curesStatus?: string[];
+  /** Blueprint IDs to cure/remove from self */
+  curesSelfStatus?: string[];
   skipHitAnimation?: boolean;
   camera?: CameraMovementDescriptor;
 }
@@ -161,12 +184,47 @@ export interface ModelComponentProps {
 
 export interface ModelConfig {
   modelPath: string;
+  /** Internal base scale used by the model component's animation math.
+   *  This is NOT the visual size — normalization handles that. */
   baseScale: number;
+  /** Relative size after normalization. 1.0 = standard, 0.5 = half size.
+   *  All models at relativeSize 1.0 appear the same visual size. */
+  relativeSize?: number;
   ModelComponent: React.ComponentType<ModelComponentProps>;
 }
 
 export const DEFAULT_ART_BACKGROUND =
   'linear-gradient(180deg, #b5ddf0 0%, #7ec4e2 50%, #5aafcf 100%)';
+
+// ── Evolved Effects ─────────────────────────────────────────
+
+export interface EvolvedEffectDescriptor {
+  /** Color for ghost aura and point light (hex string, e.g. '#3b82f6') */
+  color: string;
+  /** Ghost aura base opacity (default 0.15) */
+  auraOpacity?: number;
+  /** Ghost aura scale relative to model (default 1.25) */
+  auraScale?: number;
+  /** Point light intensity (default Math.PI * 3) */
+  lightIntensity?: number;
+}
+
+// ── Items ───────────────────────────────────────────────────
+
+export type ItemMovementPattern = 'orbit' | 'hover' | 'follow';
+
+export interface ItemDescriptor {
+  id: string;
+  name: string;
+  modelPath: string;
+  scale: number;
+  defaultMovement: ItemMovementPattern;
+}
+
+export interface ActiveItem {
+  itemId: string;
+  movement: ItemMovementPattern;
+}
 
 // ── Card Definition ─────────────────────────────────────────
 
@@ -186,4 +244,6 @@ export interface CardDefinition {
   themeOverride?: DeepPartial<CardTheme>;
   /** Song that plays when the card dances */
   danceSong?: DanceSongDescriptor;
+  /** Visual effects when evolved (ghost aura + light). If absent, no aura on evolve. */
+  evolvedEffects?: EvolvedEffectDescriptor;
 }

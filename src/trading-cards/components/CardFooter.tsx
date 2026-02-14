@@ -6,9 +6,11 @@ interface CardFooterProps {
   cardNumber: string;
   /** Slot for the dance button (or any left-side action) */
   leftAction?: React.ReactNode;
+  /** Slot for right-side actions (e.g. flip button) */
+  rightAction?: React.ReactNode;
 }
 
-export const CardFooter: React.FC<CardFooterProps> = ({ illustrator, cardNumber, leftAction }) => {
+export const CardFooter: React.FC<CardFooterProps> = ({ illustrator, cardNumber, leftAction, rightAction }) => {
   const theme = useCardTheme();
 
   return (
@@ -25,7 +27,10 @@ export const CardFooter: React.FC<CardFooterProps> = ({ illustrator, cardNumber,
         {leftAction}
         <span style={{ fontSize: 6, color: theme.footer.illustratorColor }}>Illus. {illustrator}</span>
       </div>
-      <span style={{ fontSize: 7, fontWeight: 700, color: theme.footer.cardNumberColor }}>{cardNumber}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <span style={{ fontSize: 7, fontWeight: 700, color: theme.footer.cardNumberColor }}>{cardNumber}</span>
+        {rightAction}
+      </div>
     </div>
   );
 };

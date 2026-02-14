@@ -133,11 +133,9 @@ export const rosalindDefinition: CardDefinition = {
         ],
       },
       audio: { type: 'file', filePath: 'audio/sfx/annihilation.mp3', volume: 0.85 },
-      statusEffect: {
-        type: 'cube',
+      inflictStatus: {
+        blueprintId: 'cube',
         durationMs: 5000,
-        preventsAttack: true,
-        tickDamage: 0,
       },
       skipHitAnimation: true,
     },
@@ -145,7 +143,11 @@ export const rosalindDefinition: CardDefinition = {
   model: {
     modelPath: 'models/rose.glb',
     baseScale: 100,
+    relativeSize: 0.5,
     ModelComponent: RoseModel,
   },
   cameraId: 'rosalind',
+  evolvedEffects: {
+    color: '#f472b6',
+  },
 };

@@ -8,6 +8,8 @@ export interface CameraHome {
 export interface CameraState {
   position: [number, number, number];
   target: [number, number, number];
+  /** Camera roll in radians (rotation around forward axis) */
+  roll?: number;
 }
 
 /** Default durations per preset (seconds) */
@@ -18,6 +20,8 @@ const PRESET_DURATIONS: Record<CameraPreset, number> = {
   'dramatic-low': 1.5,
   'pull-back': 1.8,
   'shake-focus': 1.0,
+  'face-to-face': 1.5,
+  'barrel-roll': 1.2,
 };
 
 export function getPresetDuration(preset: CameraPreset, override?: number): number {
@@ -149,6 +153,30 @@ export function computeCameraState(
           home.position[2] + Math.sin(elapsed * freq * 0.7) * amp * 0.4,
         ],
         target: home.target,
+      };
+    }
+
+    case 'face-to-face': {
+      // Smooth in-out lerp from home → face position [0, 8, 4] / target [0, 6, 0]
+      const facePos: [number, number, number] = [0, 8, 4];
+      const faceTgt: [number, number, number] = [0, 6, 0];
+      const inOut = t < 0.5
+        ? smoothstep(t / 0.5)
+        : 1 - smoothstep((t - 0.5) / 0.5);
+      const factor = inOut * intensity;
+      return {
+        position: lerpV3(home.position, facePos, factor),
+        target: lerpV3(home.target, faceTgt, factor),
+      };
+    }
+
+    case 'barrel-roll': {
+      // 360° roll around forward axis, position/target stay at home
+      const rollAngle = smoothstep(t) * Math.PI * 2 * intensity;
+      return {
+        position: home.position,
+        target: home.target,
+        roll: rollAngle,
       };
     }
 

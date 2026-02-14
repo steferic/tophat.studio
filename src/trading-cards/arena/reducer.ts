@@ -5,7 +5,10 @@ import type {
   PlayerState,
   DamageEvent,
   HitReaction,
+  StatusEffect,
 } from './types';
+import type { InflictStatusDescriptor } from './descriptorTypes';
+import { getBlueprint } from './statusRegistry';
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -35,6 +38,7 @@ export function createInitialState(
     lastDamageTarget: null,
     turnNumber: 1,
     winner: null,
+    teleportAttacker: null,
   };
 }
 
@@ -75,6 +79,125 @@ function hitReactionForDamage(damage: DamageEvent): HitReaction {
   return damage.finalDamage >= 120 ? 'hit-heavy' : 'hit-light';
 }
 
+// ── Status Effect Helpers ───────────────────────────────────
+
+/** Check if an effect prevents attacking (reads from blueprint) */
+export function effectPreventsAttack(e: StatusEffect): boolean {
+  return getBlueprint(e.blueprintId).preventsAttack === true && e.expiresAt > Date.now();
+}
+
+/** Check if an effect is a specific type and still active */
+export function hasActiveEffect(effects: StatusEffect[], blueprintId: string): boolean {
+  return effects.some((e) => e.blueprintId === blueprintId && e.expiresAt > Date.now());
+}
+
+/** Get the combined outgoing damage multiplier from all active effects */
+function getOutgoingDamageMultiplier(effects: StatusEffect[]): number {
+  const now = Date.now();
+  let multiplier = 1;
+  for (const e of effects) {
+    if (e.expiresAt <= now) continue;
+    const bp = getBlueprint(e.blueprintId);
+    if (bp.damageMultiplier) {
+      multiplier *= bp.damageMultiplier;
+    }
+  }
+  return multiplier;
+}
+
+/** Get the combined incoming damage multiplier from all active effects */
+function getIncomingDamageMultiplier(effects: StatusEffect[]): number {
+  const now = Date.now();
+  let multiplier = 1;
+  for (const e of effects) {
+    if (e.expiresAt <= now) continue;
+    const bp = getBlueprint(e.blueprintId);
+    if (bp.incomingDamageMultiplier) {
+      multiplier *= bp.incomingDamageMultiplier;
+    }
+  }
+  return multiplier;
+}
+
+/** Apply a status effect to an effect list (handles stacking, refresh, curing) */
+function applyStatus(
+  effects: StatusEffect[],
+  desc: InflictStatusDescriptor,
+  attackKey?: string,
+): StatusEffect[] {
+  // Check chance
+  if (desc.chance !== undefined && desc.chance < 1) {
+    if (Math.random() > desc.chance) return effects;
+  }
+
+  const bp = getBlueprint(desc.blueprintId);
+  const now = Date.now();
+  const duration = desc.durationMs ?? bp.defaultDurationMs;
+
+  // Check immunity
+  if (bp.immuneWhile) {
+    const hasImmunity = effects.some(
+      (e) => bp.immuneWhile!.includes(e.blueprintId) && e.expiresAt > now,
+    );
+    if (hasImmunity) return effects;
+  }
+
+  // Remove effects that the new effect cures
+  let result = effects;
+  if (bp.curedBy) {
+    // This blueprint lists what cures IT, not what it cures — skip here
+  }
+
+  // Check if already exists
+  const existing = result.find((e) => e.blueprintId === desc.blueprintId && e.expiresAt > now);
+
+  if (existing) {
+    if (bp.stackable) {
+      const maxStacks = bp.maxStacks ?? 99;
+      if (existing.stacks >= maxStacks) {
+        // At max stacks — just refresh duration
+        return result.map((e) =>
+          e === existing ? { ...e, expiresAt: now + duration } : e,
+        );
+      }
+      // Add a stack and refresh duration
+      return result.map((e) =>
+        e === existing ? { ...e, stacks: e.stacks + 1, expiresAt: now + duration } : e,
+      );
+    }
+    // Not stackable — refresh duration
+    return result.map((e) =>
+      e === existing ? { ...e, expiresAt: now + duration } : e,
+    );
+  }
+
+  // New effect
+  const newEffect: StatusEffect = {
+    blueprintId: desc.blueprintId,
+    expiresAt: now + duration,
+    appliedAt: now,
+    stacks: 1,
+    lastTickAt: now,
+    sourceAttackKey: attackKey,
+    tickDamageOverride: desc.tickDamage,
+  };
+
+  return [...result, newEffect];
+}
+
+/** Remove all effects whose blueprintId is in the given list */
+function cureEffects(effects: StatusEffect[], blueprintIds: string[]): StatusEffect[] {
+  return effects.filter((e) => !blueprintIds.includes(e.blueprintId));
+}
+
+/** When a new effect is applied, check if it cures any existing effects (via curedBy) */
+function applyCureRules(effects: StatusEffect[], newBlueprintId: string): StatusEffect[] {
+  return effects.filter((e) => {
+    const bp = getBlueprint(e.blueprintId);
+    return !bp.curedBy?.includes(newBlueprintId);
+  });
+}
+
 // ── Reducer ─────────────────────────────────────────────────
 
 export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState {
@@ -94,13 +217,27 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
         state[defenderSide].entry,
       );
 
-      // Apply damage multiplier from attacker's active self-buffs
-      const multiplyEffect = attacker.statusEffects.find(
-        (e) => e.damageMultiplier && e.damageMultiplier > 1 && e.expiresAt > Date.now(),
-      );
-      const lastDamage = multiplyEffect?.damageMultiplier
-        ? { ...baseDamage, finalDamage: Math.round(baseDamage.finalDamage * multiplyEffect.damageMultiplier) }
+      // Apply outgoing damage multiplier from attacker's active effects
+      const outMult = getOutgoingDamageMultiplier(attacker.statusEffects);
+      // Apply incoming damage multiplier from defender's active effects
+      const inMult = getIncomingDamageMultiplier(state[defenderSide].statusEffects);
+      const combinedMult = outMult * inMult;
+
+      const lastDamage = combinedMult !== 1
+        ? { ...baseDamage, finalDamage: Math.round(baseDamage.finalDamage * combinedMult) }
         : baseDamage;
+
+      const isTeleport = attackKey === 'instant-transmission';
+      const teleportAttacker = isTeleport
+        ? {
+            modelPath: attacker.entry.definition.model.modelPath,
+            side: state.turn,
+            baseScale: attacker.entry.definition.model.baseScale,
+            relativeSize: attacker.entry.definition.model.relativeSize ?? 1.0,
+            isEvolved: action.isEvolved ?? false,
+            evolvedEffects: attacker.entry.definition.evolvedEffects,
+          }
+        : null;
 
       return {
         ...state,
@@ -112,6 +249,7 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
         },
         lastDamage,
         lastDamageTarget: defenderSide,
+        teleportAttacker,
       };
     }
 
@@ -147,40 +285,45 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
       const defender = state[defenderSide];
       const attacker = state[state.turn];
 
-      // Check if the attack has skipHitAnimation or a status effect via descriptor
       const attackKey = attacker.activeAttack;
       const effectConfig = attackKey
         ? attacker.entry.definition.attackEffects[attackKey]
         : undefined;
 
       if (effectConfig?.skipHitAnimation) {
-        // Build status effects if the attack applies one to defender
-        const newDefenderEffects = effectConfig.statusEffect
-          ? [
-              ...defender.statusEffects,
-              {
-                type: effectConfig.statusEffect.type,
-                expiresAt: Date.now() + effectConfig.statusEffect.durationMs,
-                preventsAttack: effectConfig.statusEffect.preventsAttack,
-                tickDamage: effectConfig.statusEffect.tickDamage,
-                damageMultiplier: effectConfig.statusEffect.damageMultiplier,
-              },
-            ]
-          : defender.statusEffects;
+        // Apply status effects using the new system (inflictStatus) or legacy (statusEffect)
+        let defenderEffects = defender.statusEffects;
+        let attackerEffects = attacker.statusEffects;
 
-        // Build self status effects if the attack applies one to attacker
-        const newAttackerEffects = effectConfig.selfStatusEffect
-          ? [
-              ...attacker.statusEffects,
-              {
-                type: effectConfig.selfStatusEffect.type,
-                expiresAt: Date.now() + effectConfig.selfStatusEffect.durationMs,
-                preventsAttack: effectConfig.selfStatusEffect.preventsAttack,
-                tickDamage: effectConfig.selfStatusEffect.tickDamage,
-                damageMultiplier: effectConfig.selfStatusEffect.damageMultiplier,
-              },
-            ]
-          : attacker.statusEffects;
+        if (effectConfig.inflictStatus) {
+          defenderEffects = applyStatus(defenderEffects, effectConfig.inflictStatus, attackKey ?? undefined);
+          defenderEffects = applyCureRules(defenderEffects, effectConfig.inflictStatus.blueprintId);
+        } else if (effectConfig.statusEffect) {
+          // Legacy fallback
+          defenderEffects = applyStatus(defenderEffects, {
+            blueprintId: effectConfig.statusEffect.type,
+            durationMs: effectConfig.statusEffect.durationMs,
+          }, attackKey ?? undefined);
+        }
+
+        if (effectConfig.selfStatus) {
+          attackerEffects = applyStatus(attackerEffects, effectConfig.selfStatus, attackKey ?? undefined);
+          attackerEffects = applyCureRules(attackerEffects, effectConfig.selfStatus.blueprintId);
+        } else if (effectConfig.selfStatusEffect) {
+          // Legacy fallback
+          attackerEffects = applyStatus(attackerEffects, {
+            blueprintId: effectConfig.selfStatusEffect.type,
+            durationMs: effectConfig.selfStatusEffect.durationMs,
+          }, attackKey ?? undefined);
+        }
+
+        // Apply cure rules
+        if (effectConfig.curesStatus) {
+          defenderEffects = cureEffects(defenderEffects, effectConfig.curesStatus);
+        }
+        if (effectConfig.curesSelfStatus) {
+          attackerEffects = cureEffects(attackerEffects, effectConfig.curesSelfStatus);
+        }
 
         return {
           ...state,
@@ -189,20 +332,47 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
             ...attacker,
             activeAttack: null,
             animationElapsed: 0,
-            statusEffects: newAttackerEffects,
+            statusEffects: attackerEffects,
           },
           [defenderSide]: {
             ...defender,
-            statusEffects: newDefenderEffects,
+            statusEffects: defenderEffects,
           },
           lastDamage: null,
           lastDamageTarget: null,
+          teleportAttacker: null,
         };
       }
 
-      // Normal attack: apply damage directly (hit reaction already started mid-attack)
+      // Normal attack: apply damage + any status effects
       const damage = state.lastDamage!;
       const newHp = Math.max(0, defender.currentHp - damage.finalDamage);
+
+      let defenderEffects = defender.statusEffects;
+      let attackerEffects = attacker.statusEffects;
+
+      // Apply status effects even on normal attacks
+      if (effectConfig?.inflictStatus) {
+        defenderEffects = applyStatus(defenderEffects, effectConfig.inflictStatus, attackKey ?? undefined);
+        defenderEffects = applyCureRules(defenderEffects, effectConfig.inflictStatus.blueprintId);
+      }
+      if (effectConfig?.selfStatus) {
+        attackerEffects = applyStatus(attackerEffects, effectConfig.selfStatus, attackKey ?? undefined);
+        attackerEffects = applyCureRules(attackerEffects, effectConfig.selfStatus.blueprintId);
+      }
+      if (effectConfig?.curesStatus) {
+        defenderEffects = cureEffects(defenderEffects, effectConfig.curesStatus);
+      }
+      if (effectConfig?.curesSelfStatus) {
+        attackerEffects = cureEffects(attackerEffects, effectConfig.curesSelfStatus);
+      }
+
+      // Check if the attacker's energy type cures any defender effects
+      const attackerType = attacker.entry.cardData.type;
+      defenderEffects = defenderEffects.filter((e) => {
+        const bp = getBlueprint(e.blueprintId);
+        return !bp.curedByTypes?.includes(attackerType);
+      });
 
       return {
         ...state,
@@ -211,6 +381,7 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
           ...attacker,
           activeAttack: null,
           animationElapsed: 0,
+          statusEffects: attackerEffects,
         },
         [defenderSide]: {
           ...defender,
@@ -218,7 +389,9 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
           animationElapsed: 0,
           currentHp: newHp,
           incomingParticles: [],
+          statusEffects: defenderEffects,
         },
+        teleportAttacker: null,
       };
     }
 
@@ -265,15 +438,50 @@ export function arenaReducer(state: ArenaState, action: ArenaAction): ArenaState
     }
 
     case 'STATUS_EXPIRED': {
-      const { side, effectType } = action;
+      const { side, blueprintId } = action;
       return {
         ...state,
         [side]: {
           ...state[side],
           statusEffects: state[side].statusEffects.filter(
-            (e) => e.type !== effectType,
+            (e) => e.blueprintId !== blueprintId,
           ),
         },
+      };
+    }
+
+    case 'STATUS_TICK_DAMAGE': {
+      const { side, blueprintId, damage: tickDmg } = action;
+      const player = state[side];
+      const newHp = Math.max(0, player.currentHp - tickDmg);
+
+      // Update lastTickAt
+      const updatedEffects = player.statusEffects.map((e) =>
+        e.blueprintId === blueprintId ? { ...e, lastTickAt: Date.now() } : e,
+      );
+
+      const next: ArenaState = {
+        ...state,
+        [side]: {
+          ...player,
+          currentHp: newHp,
+          statusEffects: updatedEffects,
+        },
+      };
+
+      if (newHp <= 0) {
+        return { ...next, phase: 'game-over', winner: side === 'left' ? 'right' : 'left' };
+      }
+      return next;
+    }
+
+    case 'STATUS_TICK_HEAL': {
+      const { side, amount } = action;
+      const player = state[side];
+      const newHp = Math.min(player.maxHp, player.currentHp + amount);
+      return {
+        ...state,
+        [side]: { ...player, currentHp: newHp },
       };
     }
 

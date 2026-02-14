@@ -133,12 +133,9 @@ export const evilPengoDefinition: CardDefinition = {
       },
       audio: { type: 'synth', synthPreset: 'multiply' },
       skipHitAnimation: true,
-      selfStatusEffect: {
-        type: 'multiply',
+      selfStatus: {
+        blueprintId: 'multiply',
         durationMs: 60000,
-        preventsAttack: false,
-        tickDamage: 0,
-        damageMultiplier: 2,
       },
     },
     'void-collapse': {
@@ -191,4 +188,7 @@ export const evilPengoDefinition: CardDefinition = {
   cameraId: 'evil-pengo',
   artBackground: 'linear-gradient(180deg, #0a0010 0%, #1a0030 40%, #0d0018 100%)',
   disableHolo: true,
+  evolvedEffects: {
+    color: '#a855f7',
+  },
 };

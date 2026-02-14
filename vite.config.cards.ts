@@ -6,7 +6,7 @@ export default defineConfig({
   root: '.',
   publicDir: 'public',
   server: {
-    port: 3100,
+    port: 3000,
     open: '/cards.html',
   },
   build: {

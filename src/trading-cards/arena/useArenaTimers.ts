@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react';
 import type { ArenaState, ArenaAction } from './types';
+import { effectPreventsAttack } from './reducer';
+import { getBlueprint } from './statusRegistry';
 
 const HIT_REACTION_DELAY = 1000;
 const RESOLVE_DELAY = 1200;
 const TURN_END_DELAY = 800;
-const CUBE_SKIP_DELAY = 1500;
+const BLOCKED_SKIP_DELAY = 1500;
 
 /**
  * Handles all animation sequencing via rAF so the reducer stays pure.
  * Auto-dispatches phase transitions when animation durations elapse.
+ * Also handles status effect ticks (damage/heal) and expiry.
  */
 export function useArenaTimers(
   state: ArenaState,
@@ -60,7 +63,9 @@ export function useArenaTimers(
           // Start hit reaction on defender partway through the attack
           if (!hitStartedRef.current) {
             const effectConfig = attacker.entry.definition.attackEffects[attackKey];
-            const hitDelay = Math.min(HIT_REACTION_DELAY, duration - 300);
+            const hitDelay = attackKey === 'instant-transmission'
+              ? 700
+              : Math.min(HIT_REACTION_DELAY, duration - 300);
             if (!effectConfig?.skipHitAnimation && elapsed >= hitDelay) {
               hitStartedRef.current = true;
               dispatch({ type: 'HIT_REACTION_START' });
@@ -95,32 +100,60 @@ export function useArenaTimers(
     return () => cancelAnimationFrame(rafId);
   }, [state.phase, state.turn, state, dispatch]);
 
-  // Auto-skip if active player has a preventsAttack status, or clear expired status effects
+  // ── Status effect expiry, tick damage/heal, and auto-skip ──
   useEffect(() => {
     if (state.phase !== 'selecting') return;
 
-    const activePlayer = state[state.turn];
-    const blockingEffect = activePlayer.statusEffects.find(
-      (e) => e.preventsAttack && e.expiresAt > Date.now(),
-    );
-
-    // Check for any expired status effects on either side and clear them
     const now = Date.now();
+
+    // 1. Expire any finished effects on either side
     for (const side of ['left', 'right'] as const) {
       for (const effect of state[side].statusEffects) {
         if (effect.expiresAt <= now) {
-          dispatch({ type: 'STATUS_EXPIRED', side, effectType: effect.type });
-          return;
+          dispatch({ type: 'STATUS_EXPIRED', side, blueprintId: effect.blueprintId });
+          return; // One dispatch per tick to keep state consistent
         }
       }
     }
 
-    if (!blockingEffect) return;
+    // 2. Apply tick damage/heal for effects whose interval has elapsed
+    for (const side of ['left', 'right'] as const) {
+      for (const effect of state[side].statusEffects) {
+        if (effect.expiresAt <= now) continue;
+        const bp = getBlueprint(effect.blueprintId);
 
-    // Player is still blocked — auto-skip after delay
+        const tickDamage = effect.tickDamageOverride ?? bp.tickDamage ?? 0;
+        const tickHeal = bp.tickHeal ?? 0;
+        const interval = bp.tickIntervalMs ?? 5000;
+        const timeSinceLastTick = now - effect.lastTickAt;
+
+        if (timeSinceLastTick >= interval) {
+          // For stackable effects, damage scales with stacks
+          if (tickDamage > 0) {
+            dispatch({
+              type: 'STATUS_TICK_DAMAGE',
+              side,
+              blueprintId: effect.blueprintId,
+              damage: tickDamage * effect.stacks,
+            });
+            return;
+          }
+          if (tickHeal > 0) {
+            dispatch({ type: 'STATUS_TICK_HEAL', side, amount: tickHeal });
+            return;
+          }
+        }
+      }
+    }
+
+    // 3. Auto-skip if active player has a preventsAttack effect
+    const activePlayer = state[state.turn];
+    const blocked = activePlayer.statusEffects.some(effectPreventsAttack);
+    if (!blocked) return;
+
     const timer = setTimeout(() => {
       dispatch({ type: 'SKIP_TURN' });
-    }, CUBE_SKIP_DELAY);
+    }, BLOCKED_SKIP_DELAY);
 
     return () => clearTimeout(timer);
   }, [state.phase, state.turn, state.left.statusEffects, state.right.statusEffects, dispatch]);

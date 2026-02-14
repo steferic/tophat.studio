@@ -1,10 +1,11 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
 import { sweepAngle, artShimmer, artShimmerOpacity, artWindowGlow } from '../styles/holo';
 import { useCardTheme } from '../styles/CardThemeContext';
 import { computeArtGlow } from '../engines/glowEngine';
 import { CameraAnimator } from '../effects/CameraAnimator';
+import { VisualEffectPass } from '../effects/VisualEffectPass';
 import type { ArtGlowDescriptor, CameraMovementDescriptor } from '../arena/descriptorTypes';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 
@@ -46,6 +47,54 @@ const CameraManager: React.FC<{
   return null;
 };
 
+/** DOM-based FPS counter using requestAnimationFrame */
+const FpsMeter: React.FC = () => {
+  const [fps, setFps] = useState(0);
+  const frames = useRef(0);
+  const lastTime = useRef(performance.now());
+
+  useEffect(() => {
+    let id: number;
+    const tick = () => {
+      frames.current++;
+      const now = performance.now();
+      const elapsed = now - lastTime.current;
+      if (elapsed >= 500) {
+        setFps(Math.round((frames.current / elapsed) * 1000));
+        frames.current = 0;
+        lastTime.current = now;
+      }
+      id = requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  const color = fps >= 50 ? '#4ade80' : fps >= 30 ? '#facc15' : '#f87171';
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 4,
+        left: 4,
+        zIndex: 3,
+        fontSize: 9,
+        fontWeight: 700,
+        fontFamily: 'monospace',
+        color,
+        background: 'rgba(0,0,0,0.6)',
+        padding: '1px 5px',
+        borderRadius: 3,
+        pointerEvents: 'none',
+        lineHeight: 1.5,
+      }}
+    >
+      {fps} fps
+    </div>
+  );
+};
+
 interface ArtWindowProps {
   frame: number;
   fps: number;
@@ -60,6 +109,10 @@ interface ArtWindowProps {
   artGlowDescriptor?: ArtGlowDescriptor;
   /** Camera movement descriptor for attack animations */
   cameraMovement?: CameraMovementDescriptor;
+  /** Visual filter overlay: 'blue-tint' | 'dither' | null */
+  visualFilter?: string | null;
+  /** Manual camera movement triggered by user (separate from attack camera) */
+  manualCameraMovement?: CameraMovementDescriptor | null;
 }
 
 export const ArtWindow: React.FC<ArtWindowProps> = ({
@@ -72,6 +125,8 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
   cameraId = 'default',
   artGlowDescriptor,
   cameraMovement,
+  visualFilter,
+  manualCameraMovement,
 }) => {
   const theme = useCardTheme();
   const artAngle = sweepAngle(frame, fps, 1, [-45, 315]);
@@ -139,10 +194,13 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
             active={activeAttack !== null}
             attackElapsed={attackElapsed}
             controlsRef={controlsRef}
+            manualDescriptor={manualCameraMovement}
           />
         )}
         {children}
+        {visualFilter && visualFilter !== 'blue-tint' && <VisualEffectPass filter={visualFilter} />}
       </Canvas>
+      {interactive && <FpsMeter />}
       {/* Holographic shimmer over art window */}
       {theme.holoEnabled && (
         <div
@@ -150,6 +208,18 @@ export const ArtWindow: React.FC<ArtWindowProps> = ({
             position: 'absolute',
             inset: 0,
             background: shimmer,
+            pointerEvents: 'none',
+            zIndex: 1,
+          }}
+        />
+      )}
+      {/* Visual filter overlays */}
+      {visualFilter === 'blue-tint' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(0,80,200,0.25)',
             pointerEvents: 'none',
             zIndex: 1,
           }}

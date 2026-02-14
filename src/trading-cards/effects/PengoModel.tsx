@@ -172,6 +172,21 @@ export const PengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRea
       groupRef.current.scale.setScalar(s);
       groupRef.current.position.y = Math.sin(elapsed * 8) * 2.5 * intensity + intensity * 1.5;
       groupRef.current.position.x = Math.sin(elapsed * 11) * 1.0 * intensity;
+    } else if (activeAttack === 'instant-transmission') {
+      // Vanish (0-0.08s): near-instant disappear (clone appears simultaneously)
+      if (elapsed < 0.08) {
+        const p = elapsed / 0.08;
+        groupRef.current.scale.setScalar(targetScale * (1 - p));
+      }
+      // Gone (0.08-1.4s): invisible, attacking in opponent's card
+      else if (elapsed < 1.4) {
+        groupRef.current.scale.setScalar(0);
+      }
+      // Reappear (1.4-1.48s): near-instant pop back
+      else {
+        const p = Math.min((elapsed - 1.4) / 0.08, 1);
+        groupRef.current.scale.setScalar(targetScale * p);
+      }
     }
   });
 

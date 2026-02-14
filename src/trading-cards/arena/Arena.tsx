@@ -1,7 +1,8 @@
-import React, { useReducer, useCallback } from 'react';
-import { arenaReducer, createInitialState } from './reducer';
+import React, { useReducer, useCallback, useEffect } from 'react';
+import { arenaReducer, createInitialState, effectPreventsAttack } from './reducer';
 import { useArenaTimers } from './useArenaTimers';
 import { useArenaAudio } from './useArenaAudio';
+import { loadCardRecordings } from '../audio/recordingStore';
 import { PENGO_ENTRY, ROSALIND_ENTRY } from './cardRegistry';
 import { ArenaLayout } from './ArenaLayout';
 import { BattleCard } from './BattleCard';
@@ -16,16 +17,21 @@ export const Arena: React.FC = () => {
     ({ left, right }) => createInitialState(left, right),
   );
 
+  useEffect(() => {
+    loadCardRecordings(PENGO_ENTRY.definition.id);
+    loadCardRecordings(ROSALIND_ENTRY.definition.id);
+  }, []);
+
   useArenaTimers(state, dispatch);
   useArenaAudio(state);
 
   const handleLeftAttack = useCallback(
-    (attackIndex: number) => dispatch({ type: 'SELECT_ATTACK', attackIndex }),
+    (attackIndex: number, isEvolved: boolean) => dispatch({ type: 'SELECT_ATTACK', attackIndex, isEvolved }),
     [],
   );
 
   const handleRightAttack = useCallback(
-    (attackIndex: number) => dispatch({ type: 'SELECT_ATTACK', attackIndex }),
+    (attackIndex: number, isEvolved: boolean) => dispatch({ type: 'SELECT_ATTACK', attackIndex, isEvolved }),
     [],
   );
 
@@ -33,6 +39,10 @@ export const Arena: React.FC = () => {
     () => dispatch({ type: 'REMATCH' }),
     [],
   );
+
+  const teleportElapsed = state.teleportAttacker
+    ? state[state.teleportAttacker.side].animationElapsed
+    : 0;
 
   return (
     <>
@@ -42,6 +52,9 @@ export const Arena: React.FC = () => {
           isActiveTurn={state.turn === 'left'}
           phase={state.phase}
           onSelectAttack={handleLeftAttack}
+          side="left"
+          teleportAttacker={state.teleportAttacker}
+          teleportElapsed={teleportElapsed}
         />
 
         <ArenaCenterHUD
@@ -51,9 +64,7 @@ export const Arena: React.FC = () => {
           leftName={state.left.entry.cardData.name}
           rightName={state.right.entry.cardData.name}
           isActiveCubed={
-            state[state.turn].statusEffects.some(
-              (e) => e.preventsAttack && e.expiresAt > Date.now()
-            )
+            state[state.turn].statusEffects.some(effectPreventsAttack)
           }
         />
 
@@ -62,6 +73,9 @@ export const Arena: React.FC = () => {
           isActiveTurn={state.turn === 'right'}
           phase={state.phase}
           onSelectAttack={handleRightAttack}
+          side="right"
+          teleportAttacker={state.teleportAttacker}
+          teleportElapsed={teleportElapsed}
         />
       </ArenaLayout>
 
