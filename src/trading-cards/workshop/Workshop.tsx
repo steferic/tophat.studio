@@ -7,6 +7,7 @@ import { computeCardShake } from '../engines/cardShakeEngine';
 import { playAttackSound } from '../engines/synthEngine';
 import { getFilterDef, getFilterDefaults } from './filterRegistry';
 import { getMorphDef, getMorphDefaults } from './morphRegistry';
+import { getAuraDef, getAuraDefaults } from './auraRegistry';
 import { WorkshopViewport } from './WorkshopViewport';
 import { WorkshopPanel } from './WorkshopPanel';
 import type { CameraPreset, ShakePattern, CameraMovementDescriptor, AttackParticleDescriptor, ActiveItem, ItemMovementPattern } from '../arena/descriptorTypes';
@@ -39,6 +40,10 @@ export const Workshop: React.FC = () => {
   // Model morphs (multi-select)
   const [activeMorphs, setActiveMorphs] = useState<string[]>([]);
   const [morphParams, setMorphParams] = useState<Record<string, Record<string, any>>>({});
+
+  // Auras (multi-select)
+  const [activeAuras, setActiveAuras] = useState<string[]>([]);
+  const [auraParams, setAuraParams] = useState<Record<string, Record<string, any>>>({});
 
   // Camera — increment trigger counter to re-fire via new descriptor ref
   const [cameraPreset, setCameraPreset] = useState<CameraPreset | null>(null);
@@ -101,6 +106,7 @@ export const Workshop: React.FC = () => {
     setActiveItems([]);
     setActiveFilters([]);
     setActiveMorphs([]);
+    setActiveAuras([]);
     setIsDancing(false);
     setIsEvolving(false);
     setIsEvolved(false);
@@ -150,6 +156,25 @@ export const Workshop: React.FC = () => {
     setMorphParams((prev) => ({
       ...prev,
       [morphId]: { ...(prev[morphId] ?? {}), [key]: value },
+    }));
+  }, []);
+
+  const handleToggleAura = useCallback((auraId: string) => {
+    setActiveAuras((prev) =>
+      prev.includes(auraId) ? prev.filter((a) => a !== auraId) : [...prev, auraId],
+    );
+    if (!auraParams[auraId]) {
+      const def = getAuraDef(auraId);
+      if (def) {
+        setAuraParams((prev) => ({ ...prev, [auraId]: getAuraDefaults(auraId) }));
+      }
+    }
+  }, [auraParams]);
+
+  const handleChangeAuraParam = useCallback((auraId: string, key: string, value: any) => {
+    setAuraParams((prev) => ({
+      ...prev,
+      [auraId]: { ...(prev[auraId] ?? {}), [key]: value },
     }));
   }, []);
 
@@ -396,6 +421,10 @@ export const Workshop: React.FC = () => {
         morphParams={morphParams}
         onToggleMorph={handleToggleMorph}
         onChangeMorphParam={handleChangeMorphParam}
+        activeAuras={activeAuras}
+        auraParams={auraParams}
+        onToggleAura={handleToggleAura}
+        onChangeAuraParam={handleChangeAuraParam}
       />
 
       {/* Spacer for panel width */}
@@ -421,6 +450,8 @@ export const Workshop: React.FC = () => {
         decompositionProgress={decompositionProgress}
         activeMorphs={activeMorphs}
         morphParams={morphParams}
+        activeAuras={activeAuras}
+        auraParams={auraParams}
       />
     </div>
   );

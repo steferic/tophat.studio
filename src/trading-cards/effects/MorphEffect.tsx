@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // ── Ashima simplex 3D noise (MIT) — suffixed to avoid collisions ──
-const SIMPLEX_GLSL = /* glsl */ `
+export const SIMPLEX_GLSL = /* glsl */ `
 vec3 mod289_m(vec3 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
 vec4 mod289_m(vec4 x) { return x - floor(x * (1.0/289.0)) * 289.0; }
 vec4 permute_m(vec4 x) { return mod289_m(((x*34.0)+1.0)*x); }
@@ -55,7 +55,7 @@ float snoise_m(vec3 v) {
 // ── GLSL morph functions ──────────────────────────────────
 // All displacements are scaled by uBoundsScale (max bounding box dimension)
 // so effects are proportional to model size regardless of raw geometry units.
-const MORPH_FUNCTIONS_GLSL = /* glsl */ `
+export const MORPH_FUNCTIONS_GLSL = /* glsl */ `
 vec3 safeNormalize(vec3 v) {
   float len = length(v);
   return len > 0.0001 ? v / len : vec3(0.0);
@@ -122,7 +122,7 @@ vec3 morphSquash(vec3 pos, float amount, vec3 boundsMin, vec3 boundsSize) {
 `;
 
 // ── Uniform declarations ──────────────────────────────────
-const UNIFORM_DECLARATIONS_GLSL = /* glsl */ `
+export const UNIFORM_DECLARATIONS_GLSL = /* glsl */ `
 uniform float uMorphBloatAmount;
 uniform float uMorphBloatNoise;
 uniform float uMorphStarveAmount;
@@ -142,7 +142,7 @@ uniform vec3 uBoundsCenter;
 `;
 
 // ── Displacement code (injected after begin_vertex) ───────
-const DISPLACEMENT_GLSL = /* glsl */ `
+export const DISPLACEMENT_GLSL = /* glsl */ `
 {
   vec3 morphDisp = vec3(0.0);
 
@@ -174,7 +174,7 @@ const DISPLACEMENT_GLSL = /* glsl */ `
 
 // ── Uniform data structure ────────────────────────────────
 
-interface MorphUniforms {
+export interface MorphUniforms {
   uMorphBloatAmount: { value: number };
   uMorphBloatNoise: { value: number };
   uMorphStarveAmount: { value: number };
@@ -193,7 +193,7 @@ interface MorphUniforms {
   uBoundsCenter: { value: THREE.Vector3 };
 }
 
-function createMorphUniforms(boundsMin: THREE.Vector3, boundsSize: THREE.Vector3, boundsCenter: THREE.Vector3): MorphUniforms {
+export function createMorphUniforms(boundsMin: THREE.Vector3, boundsSize: THREE.Vector3, boundsCenter: THREE.Vector3): MorphUniforms {
   const boundsScale = Math.max(boundsSize.x, boundsSize.y, boundsSize.z);
   return {
     uMorphBloatAmount: { value: 0 },
@@ -264,7 +264,104 @@ export interface MorphEffectProps {
   centerOffset: THREE.Vector3;
 }
 
-const AXIS_MAP: Record<string, number> = { x: 0, y: 1, z: 2 };
+export const AXIS_MAP: Record<string, number> = { x: 0, y: 1, z: 2 };
+
+/** Inject morph vertex shader into a material's onBeforeCompile callback */
+export function injectMorphVertexShader(
+  shader: { uniforms: Record<string, any>; vertexShader: string },
+  uniformData: MorphUniforms,
+  options?: { needsObjectNormalDecl?: boolean },
+): void {
+  Object.assign(shader.uniforms, uniformData);
+
+  shader.vertexShader = shader.vertexShader.replace(
+    '#include <common>',
+    `#include <common>
+${UNIFORM_DECLARATIONS_GLSL}
+${SIMPLEX_GLSL}
+${MORPH_FUNCTIONS_GLSL}`,
+  );
+
+  const normalDecl = options?.needsObjectNormalDecl
+    ? 'vec3 objectNormal = vec3(0.0);\n'
+    : '';
+
+  shader.vertexShader = shader.vertexShader.replace(
+    '#include <begin_vertex>',
+    `#include <begin_vertex>
+${normalDecl}${DISPLACEMENT_GLSL}`,
+  );
+}
+
+/** Update morph uniform values from current activeMorphs and params */
+export function updateMorphUniforms(
+  uniformRefs: MorphUniforms[],
+  activeMorphs: string[],
+  morphParams: Record<string, Record<string, any>>,
+  time: number,
+): void {
+  const activeSet = new Set(activeMorphs);
+  for (const u of uniformRefs) {
+    u.uMorphTime.value = time;
+
+    if (activeSet.has('bloat')) {
+      const p = morphParams['bloat'] ?? {};
+      u.uMorphBloatAmount.value = p.amount ?? 0.5;
+      u.uMorphBloatNoise.value = p.noise ?? 0;
+    } else {
+      u.uMorphBloatAmount.value = 0;
+      u.uMorphBloatNoise.value = 0;
+    }
+
+    if (activeSet.has('starve')) {
+      const p = morphParams['starve'] ?? {};
+      u.uMorphStarveAmount.value = p.amount ?? 0.3;
+    } else {
+      u.uMorphStarveAmount.value = 0;
+    }
+
+    if (activeSet.has('melt')) {
+      const p = morphParams['melt'] ?? {};
+      u.uMorphMeltAmount.value = p.amount ?? 0.5;
+      u.uMorphMeltDroop.value = p.droop ?? 1.0;
+    } else {
+      u.uMorphMeltAmount.value = 0;
+      u.uMorphMeltDroop.value = 1;
+    }
+
+    if (activeSet.has('twist')) {
+      const p = morphParams['twist'] ?? {};
+      u.uMorphTwistAngle.value = p.angle ?? 1.57;
+      u.uMorphTwistAxis.value = AXIS_MAP[p.axis as string] ?? 1;
+    } else {
+      u.uMorphTwistAngle.value = 0;
+      u.uMorphTwistAxis.value = 1;
+    }
+
+    if (activeSet.has('stretch')) {
+      const p = morphParams['stretch'] ?? {};
+      u.uMorphStretchFactor.value = p.factor ?? 1.5;
+    } else {
+      u.uMorphStretchFactor.value = 1;
+    }
+
+    if (activeSet.has('wobble')) {
+      const p = morphParams['wobble'] ?? {};
+      u.uMorphWobbleAmplitude.value = p.amplitude ?? 0.3;
+      u.uMorphWobbleFrequency.value = p.frequency ?? 3.0;
+    } else {
+      u.uMorphWobbleAmplitude.value = 0;
+      u.uMorphWobbleFrequency.value = 3;
+    }
+
+    if (activeSet.has('squash')) {
+      const p = morphParams['squash'] ?? {};
+      u.uMorphSquashAmount.value = p.amount ?? 0.5;
+    } else {
+      u.uMorphSquashAmount.value = 0;
+    }
+  }
+}
 
 export const MorphEffect: React.FC<MorphEffectProps> = ({
   scene,
@@ -320,24 +417,7 @@ export const MorphEffect: React.FC<MorphEffectProps> = ({
         mat.customProgramCacheKey = () => `morph-v1-${idx}`;
 
         mat.onBeforeCompile = (shader) => {
-          // Merge our uniforms into the shader
-          Object.assign(shader.uniforms, uniformData);
-
-          // After #include <common>: add uniform declarations + noise + morph functions
-          shader.vertexShader = shader.vertexShader.replace(
-            '#include <common>',
-            `#include <common>
-${UNIFORM_DECLARATIONS_GLSL}
-${SIMPLEX_GLSL}
-${MORPH_FUNCTIONS_GLSL}`,
-          );
-
-          // After #include <begin_vertex>: add combined displacement
-          shader.vertexShader = shader.vertexShader.replace(
-            '#include <begin_vertex>',
-            `#include <begin_vertex>
-${DISPLACEMENT_GLSL}`,
-          );
+          injectMorphVertexShader(shader, uniformData);
         };
 
         mat.needsUpdate = true;
@@ -357,81 +437,11 @@ ${DISPLACEMENT_GLSL}`,
     const src = sourceRef.current;
     if (!groupRef.current || !src) return;
 
-    // Copy transforms from animated model
     groupRef.current.position.copy(src.position);
     groupRef.current.rotation.copy(src.rotation);
     groupRef.current.scale.copy(src.scale);
 
-    const time = state.clock.getElapsedTime();
-    const activeSet = new Set(activeMorphs);
-
-    for (const u of uniformRefs) {
-      u.uMorphTime.value = time;
-
-      // Bloat
-      if (activeSet.has('bloat')) {
-        const p = morphParams['bloat'] ?? {};
-        u.uMorphBloatAmount.value = p.amount ?? 0.5;
-        u.uMorphBloatNoise.value = p.noise ?? 0;
-      } else {
-        u.uMorphBloatAmount.value = 0;
-        u.uMorphBloatNoise.value = 0;
-      }
-
-      // Starve
-      if (activeSet.has('starve')) {
-        const p = morphParams['starve'] ?? {};
-        u.uMorphStarveAmount.value = p.amount ?? 0.3;
-      } else {
-        u.uMorphStarveAmount.value = 0;
-      }
-
-      // Melt
-      if (activeSet.has('melt')) {
-        const p = morphParams['melt'] ?? {};
-        u.uMorphMeltAmount.value = p.amount ?? 0.5;
-        u.uMorphMeltDroop.value = p.droop ?? 1.0;
-      } else {
-        u.uMorphMeltAmount.value = 0;
-        u.uMorphMeltDroop.value = 1;
-      }
-
-      // Twist
-      if (activeSet.has('twist')) {
-        const p = morphParams['twist'] ?? {};
-        u.uMorphTwistAngle.value = p.angle ?? 1.57;
-        u.uMorphTwistAxis.value = AXIS_MAP[p.axis as string] ?? 1;
-      } else {
-        u.uMorphTwistAngle.value = 0;
-        u.uMorphTwistAxis.value = 1;
-      }
-
-      // Stretch
-      if (activeSet.has('stretch')) {
-        const p = morphParams['stretch'] ?? {};
-        u.uMorphStretchFactor.value = p.factor ?? 1.5;
-      } else {
-        u.uMorphStretchFactor.value = 1;
-      }
-
-      // Wobble
-      if (activeSet.has('wobble')) {
-        const p = morphParams['wobble'] ?? {};
-        u.uMorphWobbleAmplitude.value = p.amplitude ?? 0.3;
-        u.uMorphWobbleFrequency.value = p.frequency ?? 3.0;
-      } else {
-        u.uMorphWobbleAmplitude.value = 0;
-        u.uMorphWobbleFrequency.value = 3;
-      }
-
-      // Squash
-      if (activeSet.has('squash')) {
-        const p = morphParams['squash'] ?? {};
-        u.uMorphSquashAmount.value = p.amount ?? 0.5;
-      } else {
-        u.uMorphSquashAmount.value = 0;
-      }
-    }
+    updateMorphUniforms(uniformRefs, activeMorphs, morphParams, state.clock.getElapsedTime());
   });
 
   return (

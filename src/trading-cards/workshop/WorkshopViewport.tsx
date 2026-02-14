@@ -124,6 +124,9 @@ export interface WorkshopViewportProps {
   // Morphs
   activeMorphs?: string[];
   morphParams?: Record<string, Record<string, any>>;
+  // Auras
+  activeAuras?: string[];
+  auraParams?: Record<string, Record<string, any>>;
 }
 
 export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
@@ -146,6 +149,8 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
   decompositionProgress,
   activeMorphs = [],
   morphParams = {},
+  activeAuras = [],
+  auraParams = {},
 }) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const cameraId = `workshop-${definition.id}`;
@@ -208,6 +213,8 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
             side="left"
             activeMorphs={activeMorphs}
             morphParams={morphParams}
+            activeAuras={activeAuras}
+            auraParams={auraParams}
           />
         </group>
         {activeDecomposition && (

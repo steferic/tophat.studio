@@ -3,6 +3,7 @@ import type { BattleCardEntry } from '../arena/types';
 import type { CameraPreset, ShakePattern, ItemDescriptor, ActiveItem, ItemMovementPattern } from '../arena/descriptorTypes';
 import { FILTER_IDS, getFilterDef } from './filterRegistry';
 import { MORPH_IDS, getMorphDef } from './morphRegistry';
+import { AURA_IDS, getAuraDef } from './auraRegistry';
 import { FilterParamControls } from './FilterParamControls';
 
 const CAMERA_PRESETS: CameraPreset[] = [
@@ -187,6 +188,12 @@ export interface WorkshopPanelProps {
   morphParams: Record<string, Record<string, any>>;
   onToggleMorph: (morphId: string) => void;
   onChangeMorphParam: (morphId: string, key: string, value: any) => void;
+
+  // Auras
+  activeAuras: string[];
+  auraParams: Record<string, Record<string, any>>;
+  onToggleAura: (auraId: string) => void;
+  onChangeAuraParam: (auraId: string, key: string, value: any) => void;
 }
 
 export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
@@ -229,6 +236,10 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   morphParams,
   onToggleMorph,
   onChangeMorphParam,
+  activeAuras,
+  auraParams,
+  onToggleAura,
+  onChangeAuraParam,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
@@ -276,6 +287,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
     [allItems, q],
   );
   const filteredMorphs = filterItems(MORPH_IDS);
+  const filteredAuras = filterItems(AURA_IDS);
   const filteredShakes = filterItems(SHAKE_PATTERNS);
   const filteredSynths = filterItems(SYNTH_PRESET_KEYS);
   const filteredDecompositions = filterItems(DECOMPOSITION_EFFECTS);
@@ -426,6 +438,40 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
                   filterDef={def}
                   values={morphParams[morphId] ?? {}}
                   onChange={(key, value) => onChangeMorphParam(morphId, key, value)}
+                />
+              </div>
+            );
+          })}
+        </Section>
+      )}
+
+      {/* Auras */}
+      {filteredAuras.length > 0 && (
+        <Section title="Auras" count={filteredAuras.length}>
+          {filteredAuras.map((key) => {
+            const def = getAuraDef(key);
+            return (
+              <button
+                key={key}
+                onClick={() => onToggleAura(key)}
+                style={activeAuras.includes(key) ? chipOn : chipOff}
+              >
+                {def?.displayName ?? key}
+              </button>
+            );
+          })}
+          {activeAuras.map((auraId) => {
+            const def = getAuraDef(auraId);
+            if (!def || def.params.length === 0) return null;
+            return (
+              <div key={auraId} style={{ width: '100%' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(100,180,255,0.8)', padding: '6px 0 2px' }}>
+                  {def.displayName}
+                </div>
+                <FilterParamControls
+                  filterDef={def}
+                  values={auraParams[auraId] ?? {}}
+                  onChange={(key, value) => onChangeAuraParam(auraId, key, value)}
                 />
               </div>
             );

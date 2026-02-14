@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { TeleportClone } from './TeleportClone';
 import { HoloLight } from './HoloLight';
 import { StatusEffectScene } from './StatusEffectScene';
-import { MorphEffect } from './MorphEffect';
+import { MorphEffect, createMorphUniforms, injectMorphVertexShader, updateMorphUniforms } from './MorphEffect';
+import type { MorphUniforms } from './MorphEffect';
+import { AuraEffect } from './AuraEffect';
 import { LightDispatcher } from './lights/LightDispatcher';
 import { ParticleDispatcher } from './particles/ParticleDispatcher';
 import { useModelBounds } from './useModelBounds';
@@ -19,30 +21,60 @@ const GhostClone: React.FC<{
   scene: THREE.Object3D;
   sourceRef: React.MutableRefObject<THREE.Group | null>;
   effects: EvolvedEffectDescriptor;
-}> = ({ scene, sourceRef, effects }) => {
+  activeMorphs: string[];
+  morphParams: Record<string, Record<string, any>>;
+}> = ({ scene, sourceRef, effects, activeMorphs, morphParams }) => {
   const groupRef = useRef<THREE.Group>(null!);
   const auraOpacity = effects.auraOpacity ?? 0.15;
   const auraScale = effects.auraScale ?? 1.25;
 
-  // Clone the scene so we compute bounds on an unparented copy.
-  // The shared `scene` from useGLTF is parented to the model's scaled group,
-  // which pollutes matrixWorld and skews the bounding box center.
-  const ghostScene = useMemo(() => {
+  // Clone the scene, replace materials with additive ghost material,
+  // and inject morph vertex shader so the aura matches base model deformation.
+  const { ghostScene, morphUniformRefs } = useMemo(() => {
     const clone = scene.clone(true);
+    clone.updateMatrixWorld(true);
+
+    // Compute bounds for morph uniforms
+    const box = new THREE.Box3();
     clone.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.material = new THREE.MeshBasicMaterial({
-          color: effects.color,
-          transparent: true,
-          opacity: auraOpacity,
-          depthWrite: false,
-          side: THREE.FrontSide,
-          blending: THREE.AdditiveBlending,
-        });
-      }
+      if ((child as THREE.Mesh).isMesh) box.expandByObject(child);
     });
-    return clone;
+    if (box.isEmpty()) box.setFromObject(clone);
+    const boundsMin = box.min;
+    const boundsSize = box.getSize(new THREE.Vector3());
+    const boundsCenter = box.getCenter(new THREE.Vector3());
+
+    const refs: MorphUniforms[] = [];
+
+    clone.traverse((child) => {
+      if (!(child as THREE.Mesh).isMesh) return;
+      const mesh = child as THREE.Mesh;
+
+      const uniformData = createMorphUniforms(boundsMin, boundsSize, boundsCenter);
+      refs.push(uniformData);
+
+      const mat = new THREE.MeshBasicMaterial({
+        color: effects.color,
+        transparent: true,
+        opacity: auraOpacity,
+        depthWrite: false,
+        side: THREE.FrontSide,
+        blending: THREE.AdditiveBlending,
+      });
+
+      const idx = refs.length - 1;
+      mat.customProgramCacheKey = () => `ghost-morph-v1-${idx}`;
+      mat.onBeforeCompile = (shader) => {
+        // MeshBasicMaterial doesn't define objectNormal — declare it as zero
+        // and let safeNormalize fall back to push-from-center direction
+        injectMorphVertexShader(shader, uniformData, { needsObjectNormalDecl: true });
+      };
+      mat.needsUpdate = true;
+
+      mesh.material = mat;
+    });
+
+    return { ghostScene: clone, morphUniformRefs: refs };
   }, [scene, effects.color, auraOpacity]);
 
   // Compute bounds from the unparented clone (no polluted parent transforms)
@@ -73,6 +105,9 @@ const GhostClone: React.FC<{
         ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = pulse;
       }
     });
+
+    // Update morph uniforms so ghost matches base model deformation
+    updateMorphUniforms(morphUniformRefs, activeMorphs, morphParams, t);
   });
 
   return (
@@ -105,6 +140,9 @@ interface ModelSceneProps {
   /** Morph effects */
   activeMorphs?: string[];
   morphParams?: Record<string, Record<string, any>>;
+  /** Aura effects */
+  activeAuras?: string[];
+  auraParams?: Record<string, Record<string, any>>;
 }
 
 /**
@@ -127,6 +165,8 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
   side,
   activeMorphs = [],
   morphParams = {},
+  activeAuras = [],
+  auraParams = {},
 }) => {
   const { model, attackEffects } = definition;
   const ModelComponent = model.ModelComponent;
@@ -185,6 +225,19 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
             centerOffset={centerOffset}
           />
         )}
+        {/* Custom auras */}
+        {activeAuras.map((auraId) => (
+          <AuraEffect
+            key={auraId}
+            scene={scene}
+            sourceRef={modelGroupRef}
+            auraId={auraId}
+            auraParams={auraParams[auraId] ?? {}}
+            activeMorphs={activeMorphs}
+            morphParams={morphParams}
+            centerOffset={centerOffset}
+          />
+        ))}
         {isEvolved && definition.evolvedEffects && (
           <>
             <pointLight
@@ -197,6 +250,8 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
               scene={scene}
               sourceRef={modelGroupRef}
               effects={definition.evolvedEffects}
+              activeMorphs={activeMorphs}
+              morphParams={morphParams}
             />
           </>
         )}
