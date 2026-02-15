@@ -3,10 +3,11 @@ import { createRoot } from 'react-dom/client';
 import { MandelbrotCard, SortingCard, SparkittyCard, StandaloneCard } from './cards';
 import { Arena } from './arena';
 import { Workshop } from './workshop';
+import { Environment } from './environment';
 import { getAllCards } from './arena/cardRegistry';
 
 // Static tabs that aren't driven by card definitions
-const STATIC_TABS = ['Battle Arena', 'Mandelbrot', 'Sortimus', 'Sparkitty', 'Workshop'] as const;
+const STATIC_TABS = ['Battle Arena', 'Mandelbrot', 'Sortimus', 'Sparkitty', 'Workshop', 'Environment'] as const;
 
 // Card-based tabs auto-generated from registry
 const cardEntries = getAllCards();
@@ -65,6 +66,7 @@ const App: React.FC = () => {
       {active === 'Sortimus' && <SortingCard />}
       {active === 'Sparkitty' && <SparkittyCard />}
       {active === 'Workshop' && <Workshop />}
+      {active === 'Environment' && <Environment />}
       {/* Card definition tabs rendered generically */}
       {cardEntries.map((entry) =>
         active === entry.definition.id ? (

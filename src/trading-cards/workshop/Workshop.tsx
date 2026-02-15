@@ -1,22 +1,22 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { getAllCards } from '../arena/cardRegistry';
 import { STATUS_REGISTRY } from '../arena/statusRegistry';
 import { SYNTH_PRESETS } from '../audio/synthPresets';
-import { getAllItems } from '../items';
 import { computeCardShake } from '../engines/cardShakeEngine';
 import { playAttackSound } from '../engines/synthEngine';
 import { getFilterDef, getFilterDefaults } from './filterRegistry';
 import { getMorphDef, getMorphDefaults } from './morphRegistry';
 import { getAuraDef, getAuraDefaults } from './auraRegistry';
+import { ALL_WORKSHOP_MODELS, getWorkshopModel } from './modelRegistry';
+import { getAllPresets, savePreset, deletePreset, exportPresetJSON } from './presetStorage';
+import { getAllEnvironmentConfigs } from '../environment/environmentStorage';
+import type { EnvironmentConfig } from '../environment/environmentTypes';
 import { WorkshopViewport } from './WorkshopViewport';
 import { WorkshopPanel } from './WorkshopPanel';
-import type { CameraPreset, ShakePattern, CameraMovementDescriptor, AttackParticleDescriptor, ActiveItem, ItemMovementPattern } from '../arena/descriptorTypes';
+import type { CameraPreset, ShakePattern, CameraMovementDescriptor, AttackParticleDescriptor } from '../arena/descriptorTypes';
 import type { HitReaction, StatusEffect } from '../arena/types';
+import type { WorkshopPreset } from './presetTypes';
 
 // ── Pre-computed data ───────────────────────────────────────
-
-const ALL_CARDS = getAllCards();
-const ALL_ITEMS = getAllItems();
 
 const STATUS_BLUEPRINTS = Object.values(STATUS_REGISTRY).map((bp) => ({
   id: bp.id,
@@ -28,7 +28,7 @@ const STATUS_BLUEPRINTS = Object.values(STATUS_REGISTRY).map((bp) => ({
 
 export const Workshop: React.FC = () => {
   // Model
-  const [selectedCardIndex, setSelectedCardIndex] = useState(0);
+  const [selectedModelId, setSelectedModelId] = useState(ALL_WORKSHOP_MODELS[0].id);
   const [isDancing, setIsDancing] = useState(false);
   const [isEvolving, setIsEvolving] = useState(false);
   const [isEvolved, setIsEvolved] = useState(false);
@@ -52,9 +52,6 @@ export const Workshop: React.FC = () => {
   // Status effects
   const [activeStatuses, setActiveStatuses] = useState<string[]>([]);
 
-  // Items
-  const [activeItems, setActiveItems] = useState<ActiveItem[]>([]);
-
   // Shake
   const [shakeTransform, setShakeTransform] = useState<string | undefined>();
   const shakeRaf = useRef<number>(0);
@@ -75,10 +72,33 @@ export const Workshop: React.FC = () => {
   const [attackElapsed, setAttackElapsed] = useState(0);
   const attackRaf = useRef<number>(0);
 
+  // Presets
+  const [presets, setPresets] = useState<WorkshopPreset[]>(() => getAllPresets());
+
+  // Environment
+  const [envConfigs, setEnvConfigs] = useState<EnvironmentConfig[]>(() => getAllEnvironmentConfigs());
+  const [selectedEnvId, setSelectedEnvId] = useState<string | null>(null);
+  const [modelPosition, setModelPosition] = useState<[number, number, number]>([0, 0, 0]);
+  const [modelRotationY, setModelRotationY] = useState(0);
+  const [modelScale, setModelScale] = useState(1);
+
+  // Refresh env configs when tab mounts (they may have changed in Environment tab)
+  useEffect(() => {
+    setEnvConfigs(getAllEnvironmentConfigs());
+  }, []);
+
+  const handleChangeModelPosition = useCallback((axis: 0 | 1 | 2, value: number) => {
+    setModelPosition((prev) => {
+      const next = [...prev] as [number, number, number];
+      next[axis] = value;
+      return next;
+    });
+  }, []);
+
   // ── Derived ───────────────────────────────────────────────
 
-  const cardEntry = ALL_CARDS[selectedCardIndex];
-  const definition = cardEntry.definition;
+  const modelEntry = getWorkshopModel(selectedModelId);
+  const definition = modelEntry.definition;
 
   // Status effects array
   const statusEffects: StatusEffect[] = activeStatuses.map((id) => ({
@@ -100,10 +120,9 @@ export const Workshop: React.FC = () => {
 
   // ── Handlers ──────────────────────────────────────────────
 
-  const handleSelectCard = useCallback((index: number) => {
-    setSelectedCardIndex(index);
+  const handleSelectModel = useCallback((modelId: string) => {
+    setSelectedModelId(modelId);
     setActiveStatuses([]);
-    setActiveItems([]);
     setActiveFilters([]);
     setActiveMorphs([]);
     setActiveAuras([]);
@@ -186,21 +205,6 @@ export const Workshop: React.FC = () => {
   const handleToggleStatus = useCallback((id: string) => {
     setActiveStatuses((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    );
-  }, []);
-
-  const handleToggleItem = useCallback((itemId: string) => {
-    setActiveItems((prev) => {
-      const exists = prev.find((ai) => ai.itemId === itemId);
-      if (exists) return prev.filter((ai) => ai.itemId !== itemId);
-      const desc = ALL_ITEMS.find((d) => d.id === itemId);
-      return [...prev, { itemId, movement: desc?.defaultMovement ?? 'orbit' }];
-    });
-  }, []);
-
-  const handleChangeItemMovement = useCallback((itemId: string, movement: ItemMovementPattern) => {
-    setActiveItems((prev) =>
-      prev.map((ai) => (ai.itemId === itemId ? { ...ai, movement } : ai)),
     );
   }, []);
 
@@ -379,14 +383,72 @@ export const Workshop: React.FC = () => {
     return () => clearTimeout(timer);
   }, [derivedCameraDesc]);
 
+  // ── Preset handlers ──────────────────────────────────────
+
+  const handleSavePreset = useCallback(
+    (name: string) => {
+      const preset: WorkshopPreset = {
+        version: 1,
+        id: crypto.randomUUID(),
+        name,
+        modelId: selectedModelId,
+        savedAt: Date.now(),
+        config: {
+          morphs: { active: activeMorphs, params: morphParams },
+          auras: { active: activeAuras, params: auraParams },
+          filters: { active: activeFilters, params: filterParams },
+          state: { evolved: isEvolved, dancing: isDancing },
+          glow: { enabled: glowEnabled, color: glowColor, radius: glowRadius },
+        },
+      };
+      savePreset(preset);
+      setPresets(getAllPresets());
+    },
+    [selectedModelId, activeMorphs, morphParams, activeAuras, auraParams, activeFilters, filterParams, isEvolved, isDancing, glowEnabled, glowColor, glowRadius],
+  );
+
+  const handleLoadPreset = useCallback(
+    (id: string) => {
+      const preset = presets.find((p) => p.id === id);
+      if (!preset) return;
+      const { config } = preset;
+      setActiveMorphs(config.morphs.active);
+      setMorphParams(config.morphs.params);
+      setActiveAuras(config.auras.active);
+      setAuraParams(config.auras.params);
+      setActiveFilters(config.filters.active);
+      setFilterParams(config.filters.params);
+      setIsEvolved(config.state.evolved);
+      setIsDancing(config.state.dancing);
+      setGlowEnabled(config.glow.enabled);
+      setGlowColor(config.glow.color);
+      setGlowRadius(config.glow.radius);
+    },
+    [presets],
+  );
+
+  const handleDeletePreset = useCallback(
+    (id: string) => {
+      deletePreset(id);
+      setPresets(getAllPresets());
+    },
+    [],
+  );
+
+  const handleCopyPresetJSON = useCallback(
+    (id: string) => {
+      const json = exportPresetJSON(id);
+      navigator.clipboard.writeText(json);
+    },
+    [],
+  );
+
   return (
     <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <WorkshopPanel
-        cards={ALL_CARDS}
-        selectedCardIndex={selectedCardIndex}
+        models={ALL_WORKSHOP_MODELS}
+        selectedModelId={selectedModelId}
         statusBlueprints={STATUS_BLUEPRINTS}
-        allItems={ALL_ITEMS}
-        activeItems={activeItems}
         activeFilters={activeFilters}
         activeStatuses={activeStatuses}
         isDancing={isDancing}
@@ -397,12 +459,10 @@ export const Workshop: React.FC = () => {
         glowRadius={glowRadius}
         activeAttackKey={activeAttackKey}
         attackMode={attackMode}
-        onSelectCard={handleSelectCard}
+        onSelectModel={handleSelectModel}
         onToggleFilter={handleToggleFilter}
         onTriggerCamera={handleTriggerCamera}
         onToggleStatus={handleToggleStatus}
-        onToggleItem={handleToggleItem}
-        onChangeItemMovement={handleChangeItemMovement}
         onTriggerShake={handleTriggerShake}
         onPlaySynth={handlePlaySynth}
         onToggleDance={() => setIsDancing((v) => !v)}
@@ -425,6 +485,20 @@ export const Workshop: React.FC = () => {
         auraParams={auraParams}
         onToggleAura={handleToggleAura}
         onChangeAuraParam={handleChangeAuraParam}
+        presets={presets}
+        onSavePreset={handleSavePreset}
+        onLoadPreset={handleLoadPreset}
+        onDeletePreset={handleDeletePreset}
+        onCopyPresetJSON={handleCopyPresetJSON}
+        envConfigs={envConfigs}
+        selectedEnvId={selectedEnvId}
+        onSelectEnv={setSelectedEnvId}
+        modelPosition={modelPosition}
+        modelRotationY={modelRotationY}
+        modelScale={modelScale}
+        onChangeModelPosition={handleChangeModelPosition}
+        onChangeModelRotationY={setModelRotationY}
+        onChangeModelScale={setModelScale}
       />
 
       {/* Spacer for panel width */}
@@ -436,7 +510,6 @@ export const Workshop: React.FC = () => {
         filterParams={filterParams}
         manualCameraMovement={derivedCameraDesc}
         statusEffects={statusEffects}
-        activeItems={activeItems}
         isDancing={isDancing}
         isEvolving={isEvolving}
         isEvolved={isEvolved}
@@ -452,6 +525,10 @@ export const Workshop: React.FC = () => {
         morphParams={morphParams}
         activeAuras={activeAuras}
         auraParams={auraParams}
+        envConfig={envConfigs.find((c) => c.id === selectedEnvId) ?? null}
+        modelPosition={modelPosition}
+        modelRotationY={modelRotationY}
+        modelScale={modelScale}
       />
     </div>
   );

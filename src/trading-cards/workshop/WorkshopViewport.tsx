@@ -5,11 +5,16 @@ import { CameraAnimator } from '../effects/CameraAnimator';
 import { VisualEffectPass } from '../effects/VisualEffectPass';
 import { ModelScene } from '../effects/ModelScene';
 import { DecompositionScene } from '../effects/decomposition';
-import { FloatingItem } from '../effects/FloatingItem';
-import { getItemDescriptor } from '../items';
-import type { CardDefinition, CameraMovementDescriptor, AttackParticleDescriptor, ActiveItem } from '../arena/descriptorTypes';
+import type { CardDefinition, CameraMovementDescriptor, AttackParticleDescriptor } from '../arena/descriptorTypes';
 import type { HitReaction, StatusEffect } from '../arena/types';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import type { EnvironmentConfig } from '../environment/environmentTypes';
+import { EnvironmentSky } from '../environment/EnvironmentSky';
+import { EnvironmentTerrain } from '../environment/EnvironmentTerrain';
+import { EnvironmentWater } from '../environment/EnvironmentWater';
+import { EnvironmentWeather } from '../environment/EnvironmentWeather';
+import { EnvironmentGodRays } from '../environment/EnvironmentGodRays';
+import { EnvironmentClouds } from '../environment/EnvironmentClouds';
 
 // ── Saved Camera Persistence ────────────────────────────────
 
@@ -107,7 +112,6 @@ export interface WorkshopViewportProps {
   filterParams: Record<string, Record<string, any>>;
   manualCameraMovement: CameraMovementDescriptor | null;
   statusEffects: StatusEffect[];
-  activeItems: ActiveItem[];
   isDancing: boolean;
   isEvolving: boolean;
   isEvolved: boolean;
@@ -127,6 +131,11 @@ export interface WorkshopViewportProps {
   // Auras
   activeAuras?: string[];
   auraParams?: Record<string, Record<string, any>>;
+  // Environment backdrop
+  envConfig?: EnvironmentConfig | null;
+  modelPosition?: [number, number, number];
+  modelRotationY?: number;
+  modelScale?: number;
 }
 
 export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
@@ -135,7 +144,6 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
   filterParams,
   manualCameraMovement,
   statusEffects,
-  activeItems,
   isDancing,
   isEvolving,
   isEvolved,
@@ -151,6 +159,10 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
   morphParams = {},
   activeAuras = [],
   auraParams = {},
+  envConfig = null,
+  modelPosition: envModelPos,
+  modelRotationY: envModelRotY = 0,
+  modelScale: envModelScale = 1,
 }) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const cameraId = `workshop-${definition.id}`;
@@ -182,7 +194,7 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
         flex: 1,
         height: '100vh',
         position: 'relative',
-        background: definition.artBackground ?? 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 100%)',
+        background: envConfig ? '#000' : (definition.artBackground ?? 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 100%)'),
         ...containerStyle,
       }}
     >
@@ -200,45 +212,50 @@ export const WorkshopViewport: React.FC<WorkshopViewportProps> = ({
           controlsRef={controlsRef}
           manualDescriptor={manualCameraMovement}
         />
-        <group visible={!activeDecomposition}>
-          <ModelScene
-            definition={definition}
-            activeAttack={activeAttack}
-            hitReaction={hitReaction}
-            incomingParticles={incomingParticles}
-            statusEffects={statusEffects}
-            isDancing={isDancing}
-            isEvolving={isEvolving}
-            isEvolved={isEvolved}
-            side="left"
-            activeMorphs={activeMorphs}
-            morphParams={morphParams}
-            activeAuras={activeAuras}
-            auraParams={auraParams}
-          />
-        </group>
-        {activeDecomposition && (
-          <DecompositionScene
-            modelPath={definition.model.modelPath}
-            baseScale={definition.model.baseScale}
-            relativeSize={definition.model.relativeSize ?? 1.0}
-            effectType={activeDecomposition as 'shatter' | 'dissolve' | 'slice'}
-            progress={decompositionProgress}
-          />
+        {/* Environment backdrop */}
+        {envConfig && (
+          <>
+            <EnvironmentSky settings={envConfig.sky} />
+            <EnvironmentClouds settings={envConfig.clouds} boxSize={envConfig.boxSize} />
+            <EnvironmentTerrain settings={envConfig.terrain} boxSize={envConfig.boxSize} />
+            <EnvironmentWater settings={envConfig.water} boxSize={envConfig.boxSize} />
+            <EnvironmentGodRays settings={envConfig.godRays} boxSize={envConfig.boxSize} />
+            <EnvironmentWeather settings={envConfig.weather} boxSize={envConfig.boxSize} boxHeight={envConfig.boxHeight} />
+          </>
         )}
-        {activeItems.map((ai, i) => {
-          const desc = getItemDescriptor(ai.itemId);
-          return (
-            <FloatingItem
-              key={ai.itemId}
-              modelPath={desc.modelPath}
-              scale={desc.scale}
-              movement={ai.movement}
-              index={i}
-              totalCount={activeItems.length}
+
+        <group
+          position={envModelPos}
+          rotation={[0, (envModelRotY * Math.PI) / 180, 0]}
+          scale={envModelScale}
+        >
+          <group visible={!activeDecomposition}>
+            <ModelScene
+              definition={definition}
+              activeAttack={activeAttack}
+              hitReaction={hitReaction}
+              incomingParticles={incomingParticles}
+              statusEffects={statusEffects}
+              isDancing={isDancing}
+              isEvolving={isEvolving}
+              isEvolved={isEvolved}
+              side="left"
+              activeMorphs={activeMorphs}
+              morphParams={morphParams}
+              activeAuras={activeAuras}
+              auraParams={auraParams}
             />
-          );
-        })}
+          </group>
+          {activeDecomposition && (
+            <DecompositionScene
+              modelPath={definition.model.modelPath}
+              baseScale={definition.model.baseScale}
+              relativeSize={definition.model.relativeSize ?? 1.0}
+              effectType={activeDecomposition as 'shatter' | 'dissolve' | 'slice'}
+              progress={decompositionProgress}
+            />
+          )}
+        </group>
         {(() => {
           const effectFilters = activeFilters.filter((f) => f !== 'blue-tint');
           if (effectFilters.length === 0) return null;

@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import type { BattleCardEntry } from '../arena/types';
-import type { CameraPreset, ShakePattern, ItemDescriptor, ActiveItem, ItemMovementPattern } from '../arena/descriptorTypes';
+import type { CameraPreset, ShakePattern } from '../arena/descriptorTypes';
+import type { WorkshopModelEntry } from './modelRegistry';
+import type { WorkshopPreset } from './presetTypes';
+import type { EnvironmentConfig } from '../environment/environmentTypes';
 import { FILTER_IDS, getFilterDef } from './filterRegistry';
 import { MORPH_IDS, getMorphDef } from './morphRegistry';
 import { AURA_IDS, getAuraDef } from './auraRegistry';
@@ -137,11 +139,9 @@ interface StatusBlueprint {
 
 export interface WorkshopPanelProps {
   // Data
-  cards: BattleCardEntry[];
-  selectedCardIndex: number;
+  models: WorkshopModelEntry[];
+  selectedModelId: string;
   statusBlueprints: StatusBlueprint[];
-  allItems: ItemDescriptor[];
-  activeItems: ActiveItem[];
 
   // Current state
   activeFilters: string[];
@@ -158,12 +158,10 @@ export interface WorkshopPanelProps {
   attackMode: 'give' | 'take' | null;
 
   // Callbacks
-  onSelectCard: (index: number) => void;
+  onSelectModel: (modelId: string) => void;
   onToggleFilter: (filter: string) => void;
   onTriggerCamera: (preset: CameraPreset) => void;
   onToggleStatus: (id: string) => void;
-  onToggleItem: (itemId: string) => void;
-  onChangeItemMovement: (itemId: string, movement: ItemMovementPattern) => void;
   onTriggerShake: (pattern: ShakePattern) => void;
   onPlaySynth: (key: string) => void;
   onToggleDance: () => void;
@@ -194,14 +192,30 @@ export interface WorkshopPanelProps {
   auraParams: Record<string, Record<string, any>>;
   onToggleAura: (auraId: string) => void;
   onChangeAuraParam: (auraId: string, key: string, value: any) => void;
+
+  // Presets
+  presets: WorkshopPreset[];
+  onSavePreset: (name: string) => void;
+  onLoadPreset: (id: string) => void;
+  onDeletePreset: (id: string) => void;
+  onCopyPresetJSON: (id: string) => void;
+
+  // Environment
+  envConfigs: EnvironmentConfig[];
+  selectedEnvId: string | null;
+  onSelectEnv: (id: string | null) => void;
+  modelPosition: [number, number, number];
+  modelRotationY: number;
+  modelScale: number;
+  onChangeModelPosition: (axis: 0 | 1 | 2, value: number) => void;
+  onChangeModelRotationY: (value: number) => void;
+  onChangeModelScale: (value: number) => void;
 }
 
 export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
-  cards,
-  selectedCardIndex,
+  models,
+  selectedModelId,
   statusBlueprints,
-  allItems,
-  activeItems,
   activeFilters,
   activeStatuses,
   isDancing,
@@ -212,12 +226,10 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   glowRadius,
   activeAttackKey,
   attackMode,
-  onSelectCard,
+  onSelectModel,
   onToggleFilter,
   onTriggerCamera,
   onToggleStatus,
-  onToggleItem,
-  onChangeItemMovement,
   onTriggerShake,
   onPlaySynth,
   onToggleDance,
@@ -240,24 +252,42 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   auraParams,
   onToggleAura,
   onChangeAuraParam,
+  presets,
+  onSavePreset,
+  onLoadPreset,
+  onDeletePreset,
+  onCopyPresetJSON,
+  envConfigs,
+  selectedEnvId,
+  onSelectEnv,
+  modelPosition,
+  modelRotationY,
+  modelScale,
+  onChangeModelPosition,
+  onChangeModelRotationY,
+  onChangeModelScale,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
+  const [presetName, setPresetName] = useState('');
   const q = search.toLowerCase();
 
   const filterItems = (items: readonly string[]) =>
     q ? items.filter((item) => item.toLowerCase().includes(q)) : [...items];
 
-  // Attacks for selected card
-  const selectedCard = cards[selectedCardIndex];
+  // Current model entry
+  const selectedModel = models.find((m) => m.id === selectedModelId);
+  const definition = selectedModel?.definition;
+
+  // Attacks for selected model
   const attacks = useMemo(() => {
-    if (!selectedCard) return [];
-    return selectedCard.cardData.attacks.map((atk, i) => ({
-      key: selectedCard.attackKeys[i],
+    if (!definition) return [];
+    return definition.cardData.attacks.map((atk, i) => ({
+      key: definition.attackKeys[i],
       name: atk.name,
       damage: atk.damage,
     }));
-  }, [selectedCard]);
+  }, [definition]);
   const filteredAttacks = useMemo(
     () =>
       q
@@ -265,6 +295,13 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         : attacks,
     [attacks, q],
   );
+
+  // Group models by kind
+  const cardModels = models.filter((m) => m.kind === 'card');
+  const itemModels = models.filter((m) => m.kind === 'item');
+
+  // Presets for current model
+  const modelPresets = presets.filter((p) => p.modelId === selectedModelId);
 
   const filteredFilters = filterItems(FILTER_IDS);
   const filteredCameras = filterItems(CAMERA_PRESETS);
@@ -278,13 +315,6 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
           )
         : statusBlueprints,
     [statusBlueprints, q],
-  );
-  const filteredItems = useMemo(
-    () =>
-      q
-        ? allItems.filter((item) => item.name.toLowerCase().includes(q))
-        : allItems,
-    [allItems, q],
   );
   const filteredMorphs = filterItems(MORPH_IDS);
   const filteredAuras = filterItems(AURA_IDS);
@@ -367,10 +397,10 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
       />
 
       {/* 1. Model Selector */}
-      <Section title="Model" count={cards.length} defaultOpen>
+      <Section title="Model" count={models.length} defaultOpen>
         <select
-          value={selectedCardIndex}
-          onChange={(e) => onSelectCard(Number(e.target.value))}
+          value={selectedModelId}
+          onChange={(e) => onSelectModel(e.target.value)}
           style={{
             width: '100%',
             padding: '6px 8px',
@@ -383,11 +413,20 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
             outline: 'none',
           }}
         >
-          {cards.map((entry, i) => (
-            <option key={entry.definition.id} value={i} style={{ background: '#1a1a2e' }}>
-              {entry.cardData.name}
-            </option>
-          ))}
+          <optgroup label="Characters">
+            {cardModels.map((entry) => (
+              <option key={entry.id} value={entry.id} style={{ background: '#1a1a2e' }}>
+                {entry.displayName}
+              </option>
+            ))}
+          </optgroup>
+          <optgroup label="Props">
+            {itemModels.map((entry) => (
+              <option key={entry.id} value={entry.id} style={{ background: '#1a1a2e' }}>
+                {entry.displayName}
+              </option>
+            ))}
+          </optgroup>
         </select>
         <div style={{ display: 'flex', gap: 6, marginTop: 4, width: '100%' }}>
           <button
@@ -409,6 +448,93 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
             Evolved
           </button>
         </div>
+      </Section>
+
+      {/* Environment Backdrop */}
+      <Section title="Environment" count={envConfigs.length} defaultOpen>
+        <select
+          value={selectedEnvId ?? ''}
+          onChange={(e) => onSelectEnv(e.target.value || null)}
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            fontSize: 12,
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 6,
+            background: 'rgba(255,255,255,0.08)',
+            color: '#fff',
+            fontFamily: 'inherit',
+            outline: 'none',
+          }}
+        >
+          <option value="" style={{ background: '#1a1a2e' }}>
+            None
+          </option>
+          {envConfigs.map((cfg) => (
+            <option key={cfg.id} value={cfg.id} style={{ background: '#1a1a2e' }}>
+              {cfg.name}
+            </option>
+          ))}
+        </select>
+        {envConfigs.length === 0 && (
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', padding: '2px 0' }}>
+            Save environments in the Environment tab first
+          </div>
+        )}
+        {selectedEnvId && (
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              Model Transform
+            </div>
+            {(['X', 'Y', 'Z'] as const).map((axis, i) => (
+              <label key={axis} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+                <span style={{ width: 14 }}>{axis}</span>
+                <input
+                  type="range"
+                  min={-80}
+                  max={80}
+                  step={0.5}
+                  value={modelPosition[i]}
+                  onChange={(e) => onChangeModelPosition(i as 0 | 1 | 2, parseFloat(e.target.value))}
+                  style={{ flex: 1, accentColor: '#64b4ff' }}
+                />
+                <span style={{ width: 32, textAlign: 'right', fontSize: 10, fontFamily: 'monospace' }}>
+                  {modelPosition[i].toFixed(1)}
+                </span>
+              </label>
+            ))}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+              <span style={{ width: 14 }}>R</span>
+              <input
+                type="range"
+                min={0}
+                max={360}
+                step={1}
+                value={modelRotationY}
+                onChange={(e) => onChangeModelRotationY(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#64b4ff' }}
+              />
+              <span style={{ width: 32, textAlign: 'right', fontSize: 10, fontFamily: 'monospace' }}>
+                {modelRotationY.toFixed(0)}
+              </span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
+              <span style={{ width: 14 }}>S</span>
+              <input
+                type="range"
+                min={0.1}
+                max={5}
+                step={0.1}
+                value={modelScale}
+                onChange={(e) => onChangeModelScale(parseFloat(e.target.value))}
+                style={{ flex: 1, accentColor: '#64b4ff' }}
+              />
+              <span style={{ width: 32, textAlign: 'right', fontSize: 10, fontFamily: 'monospace' }}>
+                {modelScale.toFixed(1)}
+              </span>
+            </label>
+          </div>
+        )}
       </Section>
 
       {/* 2. Morphs */}
@@ -527,7 +653,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 3. Visual Filters */}
+      {/* Visual Filters */}
       {filteredFilters.length > 0 && (
         <Section title="Visual Filters" count={filteredFilters.length}>
           {filteredFilters.map((key) => {
@@ -561,7 +687,85 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 3. Camera Movements */}
+      {/* Presets */}
+      {(!q || 'preset'.includes(q)) && (
+        <Section title="Presets" count={modelPresets.length}>
+          <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+            <input
+              type="text"
+              placeholder="Preset name..."
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              style={{
+                flex: 1,
+                padding: '5px 8px',
+                fontSize: 11,
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 6,
+                background: 'rgba(255,255,255,0.06)',
+                color: '#fff',
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              onClick={() => {
+                if (presetName.trim()) {
+                  onSavePreset(presetName.trim());
+                  setPresetName('');
+                }
+              }}
+              style={chipAction}
+            >
+              Save
+            </button>
+          </div>
+          {modelPresets.map((preset) => (
+            <div
+              key={preset.id}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 0',
+              }}
+            >
+              <span
+                style={{
+                  flex: 1,
+                  fontSize: 11,
+                  color: 'rgba(255,255,255,0.85)',
+                  fontWeight: 500,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={`${preset.name} — ${new Date(preset.savedAt).toLocaleString()}`}
+              >
+                {preset.name}
+                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, marginLeft: 4 }}>
+                  {new Date(preset.savedAt).toLocaleDateString()}
+                </span>
+              </span>
+              <button onClick={() => onLoadPreset(preset.id)} style={chipAction}>
+                Load
+              </button>
+              <button onClick={() => onCopyPresetJSON(preset.id)} style={chipAction}>
+                Copy
+              </button>
+              <button
+                onClick={() => onDeletePreset(preset.id)}
+                style={{ ...chipAction, color: 'rgba(255,100,100,0.8)' }}
+              >
+                Del
+              </button>
+            </div>
+          ))}
+        </Section>
+      )}
+
+      {/* Camera Movements */}
       {filteredCameras.length > 0 && (
         <Section title="Camera" count={filteredCameras.length}>
           {filteredCameras.map((preset) => (
@@ -576,7 +780,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 4. Status Effects */}
+      {/* Status Effects */}
       {filteredStatuses.length > 0 && (
         <Section title="Status Effects" count={filteredStatuses.length}>
           {filteredStatuses.map((bp) => (
@@ -591,57 +795,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 5. Items */}
-      {filteredItems.length > 0 && (
-        <Section title="Items" count={filteredItems.length}>
-          {filteredItems.map((item) => {
-            const active = activeItems.find((ai) => ai.itemId === item.id);
-            return (
-              <div
-                key={item.id}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '4px 0',
-                }}
-              >
-                <button
-                  onClick={() => onToggleItem(item.id)}
-                  style={active ? chipOn : chipOff}
-                >
-                  {item.name}
-                </button>
-                {active && (
-                  <select
-                    value={active.movement}
-                    onChange={(e) =>
-                      onChangeItemMovement(item.id, e.target.value as ItemMovementPattern)
-                    }
-                    style={{
-                      padding: '3px 6px',
-                      fontSize: 10,
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: 4,
-                      background: 'rgba(255,255,255,0.08)',
-                      color: '#fff',
-                      fontFamily: 'inherit',
-                      outline: 'none',
-                    }}
-                  >
-                    <option value="orbit" style={{ background: '#1a1a2e' }}>orbit</option>
-                    <option value="hover" style={{ background: '#1a1a2e' }}>hover</option>
-                    <option value="follow" style={{ background: '#1a1a2e' }}>follow</option>
-                  </select>
-                )}
-              </div>
-            );
-          })}
-        </Section>
-      )}
-
-      {/* 6. Decomposition */}
+      {/* Decomposition */}
       {filteredDecompositions.length > 0 && (
         <Section title="Decomposition" count={filteredDecompositions.length}>
           {filteredDecompositions.map((type) => (
@@ -656,7 +810,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 7. Card Shake */}
+      {/* Card Shake */}
       {filteredShakes.length > 0 && (
         <Section title="Shake" count={filteredShakes.length}>
           {filteredShakes.map((pattern) => (
@@ -671,7 +825,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 6. Audio / Synth */}
+      {/* Audio / Synth */}
       {filteredSynths.length > 0 && (
         <Section title="Audio / Synth" count={filteredSynths.length}>
           {filteredSynths.map((key) => (
@@ -686,7 +840,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
-      {/* 7. Glow */}
+      {/* Glow */}
       {(!q || 'glow'.includes(q)) && (
         <Section title="Glow" count={1}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
