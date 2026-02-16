@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useModelBounds } from './useModelBounds';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 import type { ModelComponentProps } from '../arena/descriptorTypes';
 
@@ -48,6 +49,7 @@ export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hi
   const multiplyActivated = useRef(false);
 
   const { centerOffset, boxSize } = useModelBounds(scene);
+  const loopDuration = useLoopDuration();
 
   const darkScene = useMemo(() => darkenClone(scene), [scene]);
   const darkApple = useMemo(() => darkenClone(appleScene), [appleScene]);
@@ -114,35 +116,35 @@ export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hi
       } else {
         // Idle orbit after multiply was used
         ref.position.set(
-          Math.cos(baseAngle + t * 0.8) * ORBIT_RADIUS,
-          Math.sin(t * 1.5 + i * 0.7) * 0.4,
-          Math.sin(baseAngle + t * 0.8) * ORBIT_RADIUS,
+          Math.cos(baseAngle + t * qf(0.8, loopDuration)) * ORBIT_RADIUS,
+          Math.sin(t * qf(1.5, loopDuration) + i * 0.7) * 0.4,
+          Math.sin(baseAngle + t * qf(0.8, loopDuration)) * ORBIT_RADIUS,
         );
         ref.scale.lerp(new THREE.Vector3(CLONE_SCALE, CLONE_SCALE, CLONE_SCALE), 0.05);
-        ref.rotation.y = baseAngle + t * 0.8;
+        ref.rotation.y = baseAngle + t * qf(0.8, loopDuration);
       }
     });
 
     // ── Floating trophies (apple + filet-o-fish) ──────────
     if (appleRef.current) {
-      const a = t * 0.6;
+      const a = t * qf(0.6, loopDuration);
       appleRef.current.position.set(
         Math.cos(a) * TROPHY_ORBIT_RADIUS,
-        0.4 + Math.sin(t * 1.8) * 0.2,
+        0.4 + Math.sin(t * qf(1.8, loopDuration)) * 0.2,
         Math.sin(a) * TROPHY_ORBIT_RADIUS,
       );
-      appleRef.current.rotation.y = t * 1.2;
-      appleRef.current.rotation.x = Math.sin(t * 0.9) * 0.15;
+      appleRef.current.rotation.y = t * qf(1.2, loopDuration);
+      appleRef.current.rotation.x = Math.sin(t * qf(0.9, loopDuration)) * 0.15;
     }
     if (fishRef.current) {
-      const a = t * 0.6 + Math.PI;
+      const a = t * qf(0.6, loopDuration) + Math.PI;
       fishRef.current.position.set(
         Math.cos(a) * TROPHY_ORBIT_RADIUS,
-        0.4 + Math.sin(t * 1.8 + 1.5) * 0.2,
+        0.4 + Math.sin(t * qf(1.8, loopDuration) + 1.5) * 0.2,
         Math.sin(a) * TROPHY_ORBIT_RADIUS,
       );
-      fishRef.current.rotation.y = t * 1.0 + Math.PI;
-      fishRef.current.rotation.z = Math.sin(t * 0.7) * 0.1;
+      fishRef.current.rotation.y = t * qf(1.0, loopDuration) + Math.PI;
+      fishRef.current.rotation.z = Math.sin(t * qf(0.7, loopDuration)) * 0.1;
     }
 
     // ── Hit reaction ────────────────────────────────────────
@@ -197,21 +199,21 @@ export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hi
         groupRef.current.rotation.x += 0.06;
         groupRef.current.rotation.y += 0.09;
         groupRef.current.rotation.z += 0.04;
-        groupRef.current.position.x = Math.sin(t * 3) * 1.2;
-        groupRef.current.position.y = Math.sin(t * 2.3) * 0.8;
+        groupRef.current.position.x = Math.sin(t * qf(3, loopDuration)) * 1.2;
+        groupRef.current.position.y = Math.sin(t * qf(2.3, loopDuration)) * 0.8;
         groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.1);
         return;
       }
 
       // Dance: menacing headbang with lurching side steps
       if (isDancing) {
-        const lurch = Math.sin(t * 3) * 2;
+        const lurch = Math.sin(t * qf(3, loopDuration)) * 2;
         groupRef.current.position.x = lurch;
-        groupRef.current.position.y = Math.abs(Math.sin(t * 6)) * 1.5;
-        groupRef.current.rotation.y = Math.sin(t * 3) * 0.5;
-        groupRef.current.rotation.x = Math.sin(t * 6) * 0.35;
-        groupRef.current.rotation.z = Math.cos(t * 3) * 0.2;
-        groupRef.current.scale.setScalar(BASE_SCALE + Math.sin(t * 6) * 1);
+        groupRef.current.position.y = Math.abs(Math.sin(t * qf(6, loopDuration))) * 1.5;
+        groupRef.current.rotation.y = Math.sin(t * qf(3, loopDuration)) * 0.5;
+        groupRef.current.rotation.x = Math.sin(t * qf(6, loopDuration)) * 0.35;
+        groupRef.current.rotation.z = Math.cos(t * qf(3, loopDuration)) * 0.2;
+        groupRef.current.scale.setScalar(BASE_SCALE + Math.sin(t * qf(6, loopDuration)) * 1);
         return;
       }
 
@@ -219,8 +221,8 @@ export const EvilPengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hi
       groupRef.current.rotation.x *= 0.9;
       groupRef.current.rotation.z *= 0.9;
       groupRef.current.position.x *= 0.9;
-      groupRef.current.rotation.y = Math.sin(t * 0.5) * 0.15;
-      groupRef.current.position.y = Math.sin(t * 1.2) * 0.4;
+      groupRef.current.rotation.y = Math.sin(t * qf(0.5, loopDuration)) * 0.15;
+      groupRef.current.position.y = Math.sin(t * qf(1.2, loopDuration)) * 0.4;
       groupRef.current.scale.lerp(new THREE.Vector3(BASE_SCALE, BASE_SCALE, BASE_SCALE), 0.1);
       return;
     }

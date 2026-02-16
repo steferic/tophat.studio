@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useModelBounds } from './useModelBounds';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 import type { ModelComponentProps } from '../arena/descriptorTypes';
 
@@ -81,6 +82,7 @@ const EnergyShield: React.FC<{
 
   const goldColor = useMemo(() => new THREE.Color('#fbbf24'), []);
   const electricBlue = useMemo(() => new THREE.Color('#38bdf8'), []);
+  const loopDuration = useLoopDuration();
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -114,8 +116,8 @@ const EnergyShield: React.FC<{
 
     // Slow idle rotation
     if (shieldGroupRef.current) {
-      shieldGroupRef.current.rotation.y = t * 0.3;
-      shieldGroupRef.current.rotation.x = Math.sin(t * 0.2) * 0.1;
+      shieldGroupRef.current.rotation.y = t * qf(0.3, loopDuration);
+      shieldGroupRef.current.rotation.x = Math.sin(t * qf(0.2, loopDuration)) * 0.1;
     }
   });
 
@@ -297,6 +299,7 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
   const targetScale = isEvolved ? BASE_SCALE * 1.5 : BASE_SCALE;
 
   const { centerOffset, boxSize } = useModelBounds(scene);
+  const loopDuration = useLoopDuration();
   const goldenScene = useMemo(() => goldenClone(scene), [scene]);
   const rockClone = useMemo(() => rockScene.clone(true), [rockScene]);
   const rockWireframe = useRef(false);
@@ -416,21 +419,21 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
         groupRef.current.rotation.x += 0.06;
         groupRef.current.rotation.y += 0.09;
         groupRef.current.rotation.z += 0.04;
-        groupRef.current.position.x = Math.sin(t * 3) * 1.2;
-        groupRef.current.position.y = Math.sin(t * 2.3) * 0.8;
+        groupRef.current.position.x = Math.sin(t * qf(3, loopDuration)) * 1.2;
+        groupRef.current.position.y = Math.sin(t * qf(2.3, loopDuration)) * 0.8;
         groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
         return;
       }
 
       // Dance: electric jitter with rapid hops and sparky shakes
       if (isDancing) {
-        const hop = Math.abs(Math.sin(t * 8)) * 1.8;
+        const hop = Math.abs(Math.sin(t * qf(8, loopDuration))) * 1.8;
         groupRef.current.position.y = hop;
-        groupRef.current.position.x = Math.sin(t * 6) * 2;
-        groupRef.current.rotation.y = t * 6;
-        groupRef.current.rotation.z = Math.sin(t * 12) * 0.25;
-        groupRef.current.rotation.x = Math.cos(t * 8) * 0.15;
-        const s = targetScale + Math.sin(t * 16) * 0.8;
+        groupRef.current.position.x = Math.sin(t * qf(6, loopDuration)) * 2;
+        groupRef.current.rotation.y = t * qf(6, loopDuration);
+        groupRef.current.rotation.z = Math.sin(t * qf(12, loopDuration)) * 0.25;
+        groupRef.current.rotation.x = Math.cos(t * qf(8, loopDuration)) * 0.15;
+        const s = targetScale + Math.sin(t * qf(16, loopDuration)) * 0.8;
         groupRef.current.scale.setScalar(s);
         return;
       }
@@ -439,8 +442,8 @@ export const SpeepoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRe
       groupRef.current.rotation.x *= 0.9;
       groupRef.current.rotation.z *= 0.9;
       groupRef.current.position.x *= 0.9;
-      groupRef.current.rotation.y = Math.sin(t * 0.8) * 0.2;
-      groupRef.current.position.y = Math.abs(Math.sin(t * 2.5)) * 0.6;
+      groupRef.current.rotation.y = Math.sin(t * qf(0.8, loopDuration)) * 0.2;
+      groupRef.current.position.y = Math.abs(Math.sin(t * qf(2.5, loopDuration))) * 0.6;
       groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
       return;
     }

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useLoopDuration, qf } from '../../workshop/loopContext';
 
 // Ashima simplex 3D noise (MIT)
 const SIMPLEX_GLSL = /* glsl */ `
@@ -212,6 +213,8 @@ ${SIMPLEX_GLSL}`,
 
   const _dummy = useMemo(() => new THREE.Object3D(), []);
 
+  const loopDuration = useLoopDuration();
+
   useFrame((state) => {
     // Update dissolve progress on all materials
     for (const ref of uniformRefs) {
@@ -242,15 +245,15 @@ ${SIMPLEX_GLSL}`,
       // Drift upward after dissolving
       const driftTime = Math.max(0, -distFromBoundary / 0.6);
       const driftY = driftTime * 1.5;
-      const wobbleX = Math.sin(t * 3 + i * 1.7) * 0.15;
-      const wobbleZ = Math.cos(t * 3 + i * 2.3) * 0.15;
+      const wobbleX = Math.sin(t * qf(3, loopDuration) + i * 1.7) * 0.15;
+      const wobbleZ = Math.cos(t * qf(3, loopDuration) + i * 2.3) * 0.15;
 
       _dummy.position.set(
         sp.pos.x + wobbleX,
         sp.pos.y + driftY,
         sp.pos.z + wobbleZ,
       );
-      const s = fade * (0.03 + Math.sin(t * 5 + i) * 0.01);
+      const s = fade * (0.03 + Math.sin(t * qf(5, loopDuration) + i) * 0.01);
       _dummy.scale.setScalar(Math.max(0, s));
       _dummy.updateMatrix();
       particleRef.current.setMatrixAt(i, _dummy.matrix);

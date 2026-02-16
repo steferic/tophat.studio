@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { CloudSettings } from './environmentTypes';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 // ── Raymarched volumetric cloud shaders ──────────────────────
 
@@ -186,6 +187,7 @@ interface Props {
 
 export const EnvironmentClouds: React.FC<Props> = ({ settings, boxSize }) => {
   const groupRef = useRef<THREE.Group>(null!);
+  const loopDuration = useLoopDuration();
 
   // Shared uniforms (uBoxMin/uBoxMax are per-cloud but identical in local space)
   const uniforms = useMemo(
@@ -228,9 +230,8 @@ export const EnvironmentClouds: React.FC<Props> = ({ settings, boxSize }) => {
     groupRef.current.children.forEach((child, i) => {
       const cloud = clouds[i];
       if (!cloud) return;
-      const drift = t * settings.speed * 0.5;
-      child.position.x = cloud.x + Math.sin(drift * 0.3 + cloud.phaseOffset) * 8;
-      child.position.z = cloud.z + Math.cos(drift * 0.2 + cloud.phaseOffset) * 6;
+      child.position.x = cloud.x + Math.sin(t * qf(settings.speed * 0.5 * 0.3, loopDuration) + cloud.phaseOffset) * 8;
+      child.position.z = cloud.z + Math.cos(t * qf(settings.speed * 0.5 * 0.2, loopDuration) + cloud.phaseOffset) * 6;
     });
   });
 

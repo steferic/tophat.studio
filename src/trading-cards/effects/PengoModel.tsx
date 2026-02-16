@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useModelBounds } from './useModelBounds';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 import type { ModelComponentProps } from '../arena/descriptorTypes';
 
@@ -17,6 +18,7 @@ export const PengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRea
   const targetScale = isEvolved ? 14 * 1.5 : 14;
 
   const { centerOffset, boxSize } = useModelBounds(scene);
+  const loopDuration = useLoopDuration();
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -110,20 +112,20 @@ export const PengoModel: React.FC<ModelComponentProps> = ({ activeAttack, hitRea
         groupRef.current.rotation.x += 0.06;
         groupRef.current.rotation.y += 0.09;
         groupRef.current.rotation.z += 0.04;
-        groupRef.current.position.x = Math.sin(t * 3) * 1.2;
-        groupRef.current.position.y = Math.sin(t * 2.3) * 0.8;
+        groupRef.current.position.x = Math.sin(t * qf(3, loopDuration)) * 1.2;
+        groupRef.current.position.y = Math.sin(t * qf(2.3, loopDuration)) * 0.8;
         groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.1);
         return;
       }
 
       if (isDancing) {
-        const bounce = Math.abs(Math.sin(t * 5)) * 2;
+        const bounce = Math.abs(Math.sin(t * qf(5, loopDuration))) * 2;
         groupRef.current.position.y = bounce;
-        groupRef.current.position.x = Math.sin(t * 2.5) * 1.5;
-        groupRef.current.rotation.z = Math.sin(t * 2.5) * 0.3;
-        groupRef.current.rotation.y = Math.sin(t * 5) * 0.4;
+        groupRef.current.position.x = Math.sin(t * qf(2.5, loopDuration)) * 1.5;
+        groupRef.current.rotation.z = Math.sin(t * qf(2.5, loopDuration)) * 0.3;
+        groupRef.current.rotation.y = Math.sin(t * qf(5, loopDuration)) * 0.4;
         groupRef.current.rotation.x = 0;
-        const s = targetScale + Math.sin(t * 10) * 0.5;
+        const s = targetScale + Math.sin(t * qf(10, loopDuration)) * 0.5;
         groupRef.current.scale.setScalar(s);
         return;
       }

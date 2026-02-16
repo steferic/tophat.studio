@@ -2,14 +2,23 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WaterSettings } from './environmentTypes';
+import { useLoopDuration } from '../workshop/loopContext';
 
 const VERTEX = /* glsl */ `
 uniform float uTime;
 uniform float uAmplitude;
 uniform float uSpeed;
+uniform float uLoopDuration;
 varying vec2 vUv;
 varying vec3 vWorldPos;
 varying vec3 vNormal;
+
+float qSinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float TAU = 6.283185307179586;
+  float cycles = max(1.0, floor(freq * uLoopDuration / TAU + 0.5));
+  return cycles * TAU / uLoopDuration;
+}
 
 // Gerstner wave: displaces xz (circular orbit) + y, returns displacement vec3
 // dir = normalized wave direction, freq = spatial freq, amp = amplitude,
@@ -54,7 +63,6 @@ vec3 gerstnerNormalZ(vec2 pos, vec2 dir, float freq, float amp, float Q, float p
 void main() {
   vUv = uv;
   vec3 pos = position;
-  float t = uTime * uSpeed;
   vec2 xz = pos.xz;
 
   // 6 Gerstner waves at varied directions to break up regularity
@@ -63,38 +71,46 @@ void main() {
   vec3 nx = vec3(0.0);
   vec3 nz = vec3(0.0);
 
+  // Quantized phase speeds for seamless looping
+  float p1 = uTime * qSinFreq(uSpeed * 0.7);
+  float p2 = uTime * qSinFreq(uSpeed * 0.5);
+  float p3 = uTime * qSinFreq(uSpeed * 1.3);
+  float p4 = uTime * qSinFreq(uSpeed * 1.1);
+  float p5 = uTime * qSinFreq(uSpeed * 2.2);
+  float p6 = uTime * qSinFreq(uSpeed * 2.8);
+
   // Large swell
   vec2 d1 = normalize(vec2(0.7, 0.3));
-  w  += gerstner(xz, d1, 0.12, 1.0,  0.6, t * 0.7);
-  nx += gerstnerNormalX(xz, d1, 0.12, 1.0, 0.6, t * 0.7);
-  nz += gerstnerNormalZ(xz, d1, 0.12, 1.0, 0.6, t * 0.7);
+  w  += gerstner(xz, d1, 0.12, 1.0,  0.6, p1);
+  nx += gerstnerNormalX(xz, d1, 0.12, 1.0, 0.6, p1);
+  nz += gerstnerNormalZ(xz, d1, 0.12, 1.0, 0.6, p1);
 
   vec2 d2 = normalize(vec2(-0.4, 0.8));
-  w  += gerstner(xz, d2, 0.08, 0.8,  0.5, t * 0.5);
-  nx += gerstnerNormalX(xz, d2, 0.08, 0.8, 0.5, t * 0.5);
-  nz += gerstnerNormalZ(xz, d2, 0.08, 0.8, 0.5, t * 0.5);
+  w  += gerstner(xz, d2, 0.08, 0.8,  0.5, p2);
+  nx += gerstnerNormalX(xz, d2, 0.08, 0.8, 0.5, p2);
+  nz += gerstnerNormalZ(xz, d2, 0.08, 0.8, 0.5, p2);
 
   // Medium chop
   vec2 d3 = normalize(vec2(0.2, -0.9));
-  w  += gerstner(xz, d3, 0.3, 0.35, 0.7, t * 1.3);
-  nx += gerstnerNormalX(xz, d3, 0.3, 0.35, 0.7, t * 1.3);
-  nz += gerstnerNormalZ(xz, d3, 0.3, 0.35, 0.7, t * 1.3);
+  w  += gerstner(xz, d3, 0.3, 0.35, 0.7, p3);
+  nx += gerstnerNormalX(xz, d3, 0.3, 0.35, 0.7, p3);
+  nz += gerstnerNormalZ(xz, d3, 0.3, 0.35, 0.7, p3);
 
   vec2 d4 = normalize(vec2(-0.6, -0.5));
-  w  += gerstner(xz, d4, 0.25, 0.25, 0.65, t * 1.1);
-  nx += gerstnerNormalX(xz, d4, 0.25, 0.25, 0.65, t * 1.1);
-  nz += gerstnerNormalZ(xz, d4, 0.25, 0.25, 0.65, t * 1.1);
+  w  += gerstner(xz, d4, 0.25, 0.25, 0.65, p4);
+  nx += gerstnerNormalX(xz, d4, 0.25, 0.25, 0.65, p4);
+  nz += gerstnerNormalZ(xz, d4, 0.25, 0.25, 0.65, p4);
 
   // Fine ripple
   vec2 d5 = normalize(vec2(0.9, 0.5));
-  w  += gerstner(xz, d5, 0.7, 0.1, 0.5, t * 2.2);
-  nx += gerstnerNormalX(xz, d5, 0.7, 0.1, 0.5, t * 2.2);
-  nz += gerstnerNormalZ(xz, d5, 0.7, 0.1, 0.5, t * 2.2);
+  w  += gerstner(xz, d5, 0.7, 0.1, 0.5, p5);
+  nx += gerstnerNormalX(xz, d5, 0.7, 0.1, 0.5, p5);
+  nz += gerstnerNormalZ(xz, d5, 0.7, 0.1, 0.5, p5);
 
   vec2 d6 = normalize(vec2(-0.3, 0.6));
-  w  += gerstner(xz, d6, 0.9, 0.07, 0.4, t * 2.8);
-  nx += gerstnerNormalX(xz, d6, 0.9, 0.07, 0.4, t * 2.8);
-  nz += gerstnerNormalZ(xz, d6, 0.9, 0.07, 0.4, t * 2.8);
+  w  += gerstner(xz, d6, 0.9, 0.07, 0.4, p6);
+  nx += gerstnerNormalX(xz, d6, 0.9, 0.07, 0.4, p6);
+  nz += gerstnerNormalZ(xz, d6, 0.9, 0.07, 0.4, p6);
 
   pos.x += w.x * uAmplitude;
   pos.y += w.y * uAmplitude;
@@ -183,6 +199,7 @@ interface Props {
 
 export const EnvironmentWater: React.FC<Props> = ({ settings, boxSize }) => {
   const matRef = useRef<THREE.ShaderMaterial>(null!);
+  const loopDuration = useLoopDuration();
 
   const uniforms = useMemo(
     () => ({
@@ -191,6 +208,7 @@ export const EnvironmentWater: React.FC<Props> = ({ settings, boxSize }) => {
       uOpacity: { value: settings.opacity },
       uAmplitude: { value: settings.waveAmplitude },
       uSpeed: { value: settings.waveSpeed },
+      uLoopDuration: { value: 0 },
     }),
     [],
   );
@@ -202,6 +220,7 @@ export const EnvironmentWater: React.FC<Props> = ({ settings, boxSize }) => {
     matRef.current.uniforms.uOpacity.value = settings.opacity;
     matRef.current.uniforms.uAmplitude.value = settings.waveAmplitude;
     matRef.current.uniforms.uSpeed.value = settings.waveSpeed;
+    matRef.current.uniforms.uLoopDuration.value = loopDuration ?? 0;
   });
 
   if (!settings.enabled) return null;

@@ -1,4 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
+import { useLoopDuration } from '../workshop/loopContext';
 import {
   EffectComposer,
   Bloom,
@@ -44,10 +46,12 @@ import {
   EmbossEffect,
   RippleEffect,
 } from './customEffects';
+import { MaskedEffect } from './MaskedEffect';
+import type { MaskConfig } from '../workshop/maskRegistry';
 
 // ── Helpers ─────────────────────────────────────────────────
 
-function hexToRgb01(hex: string): number[] {
+function hexToRgb01(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
   return [
     parseInt(h.substring(0, 2), 16) / 255,
@@ -315,10 +319,94 @@ function useCustomEffects(
 interface VisualEffectPassProps {
   filters: string[];
   allParams: Record<string, Record<string, any>>;
+  maskConfig?: MaskConfig;
 }
 
-export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, allParams }) => {
+// ── Pattern ID → int mapping ─────────────────────────────────
+
+const MASK_PATTERN_INDEX: Record<string, number> = {
+  checkerboard: 0,
+  'vertical-stripes': 1,
+  'horizontal-stripes': 2,
+  hexagonal: 3,
+  'radial-sectors': 4,
+  diamond: 5,
+  wave: 6,
+  'diagonal-stripes': 7,
+};
+
+export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, allParams, maskConfig }) => {
   const customEffects = useCustomEffects(filters, allParams);
+  const loopDuration = useLoopDuration();
+  const gl = useThree((s) => s.gl);
+
+  // Create MaskedEffect instance (stable unless toggled)
+  const maskedEffect = useMemo(
+    () => (maskConfig?.enabled ? new MaskedEffect() : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [maskConfig?.enabled],
+  );
+
+  // Keep a ref to the latest maskConfig so useFrame always sees current values
+  const maskConfigRef = useRef(maskConfig);
+  maskConfigRef.current = maskConfig;
+
+  // Restore autoClear when EffectComposer unmounts (it sets autoClear=false)
+  useEffect(() => {
+    return () => { gl.autoClear = true; };
+  }, [gl]);
+
+  // Pump uTime + uLoopDuration into animated custom effects each frame
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    const ld = loopDuration ?? 0;
+    customEffects.forEach((effect) => {
+      const uTime = effect.uniforms?.get('uTime');
+      const uLoop = effect.uniforms?.get('uLoopDuration');
+      if (uTime) uTime.value = t;
+      if (uLoop) uLoop.value = ld;
+    });
+
+    // Pump MaskedEffect uniforms
+    if (maskedEffect) {
+      const mc = maskConfigRef.current;
+      if (!mc) return;
+      const u = maskedEffect.uniforms;
+      u.get('uTime')!.value = t;
+      u.get('uLoopDuration')!.value = ld;
+      u.get('uPattern')!.value = MASK_PATTERN_INDEX[mc.pattern] ?? 0;
+      u.get('uCellSize')!.value = mc.cellSize;
+      u.get('uSpeed')!.value = mc.speed;
+      u.get('uSoftness')!.value = mc.softness;
+      u.get('uInvert')!.value = mc.invertZones ? 1 : 0;
+
+      // Zone A
+      const a = mc.zoneA;
+      u.get('uA_grayscale')!.value = a.grayscale;
+      u.get('uA_sepia')!.value = a.sepia;
+      u.get('uA_invert')!.value = a.invert;
+      u.get('uA_hueRotation')!.value = a.hueRotation;
+      u.get('uA_saturation')!.value = a.saturation;
+      u.get('uA_brightness')!.value = a.brightness;
+      u.get('uA_contrast')!.value = a.contrast;
+      u.get('uA_posterize')!.value = a.posterize;
+      u.get('uA_tintColor')!.value = hexToRgb01(a.tintColor);
+      u.get('uA_tintAmount')!.value = a.tintAmount;
+
+      // Zone B
+      const b = mc.zoneB;
+      u.get('uB_grayscale')!.value = b.grayscale;
+      u.get('uB_sepia')!.value = b.sepia;
+      u.get('uB_invert')!.value = b.invert;
+      u.get('uB_hueRotation')!.value = b.hueRotation;
+      u.get('uB_saturation')!.value = b.saturation;
+      u.get('uB_brightness')!.value = b.brightness;
+      u.get('uB_contrast')!.value = b.contrast;
+      u.get('uB_posterize')!.value = b.posterize;
+      u.get('uB_tintColor')!.value = hexToRgb01(b.tintColor);
+      u.get('uB_tintAmount')!.value = b.tintAmount;
+    }
+  });
 
   const elements: React.ReactNode[] = [];
   for (const id of filters) {
@@ -336,6 +424,11 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, all
     if (custom) {
       elements.push(<primitive key={id} object={custom} />);
     }
+  }
+
+  // Append masked effect last (applies after all global effects)
+  if (maskedEffect) {
+    elements.push(<primitive key="masked-effect" object={maskedEffect} />);
   }
 
   if (elements.length === 0) return null;

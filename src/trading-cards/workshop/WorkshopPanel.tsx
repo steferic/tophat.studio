@@ -6,7 +6,10 @@ import type { EnvironmentConfig } from '../environment/environmentTypes';
 import { FILTER_IDS, getFilterDef } from './filterRegistry';
 import { MORPH_IDS, getMorphDef } from './morphRegistry';
 import { AURA_IDS, getAuraDef } from './auraRegistry';
+import { SHIELD_IDS, getShieldDef } from './shieldRegistry';
 import { FilterParamControls } from './FilterParamControls';
+import { MASK_PATTERNS, MASK_GLOBAL_PARAMS, ZONE_EFFECT_PARAMS } from './maskRegistry';
+import type { MaskConfig } from './maskRegistry';
 export const RECORD_RESOLUTIONS = [
   { label: '1080\u00d71080 Square', w: 1080, h: 1080 },
   { label: '1080\u00d71920 Portrait', w: 1080, h: 1920 },
@@ -176,6 +179,8 @@ export interface WorkshopPanelProps {
   onToggleGlow: () => void;
   onChangeGlowColor: (hex: string) => void;
   onChangeGlowRadius: (radius: number) => void;
+  bgColor: string;
+  onChangeBgColor: (hex: string) => void;
   onGiveAttack: (attackKey: string) => void;
   onTakeAttack: (attackKey: string) => void;
 
@@ -198,6 +203,19 @@ export interface WorkshopPanelProps {
   auraParams: Record<string, Record<string, any>>;
   onToggleAura: (auraId: string) => void;
   onChangeAuraParam: (auraId: string, key: string, value: any) => void;
+
+  // Shields
+  activeShields: string[];
+  shieldParams: Record<string, Record<string, any>>;
+  onToggleShield: (shieldId: string) => void;
+  onChangeShieldParam: (shieldId: string, key: string, value: any) => void;
+
+  // Masked effects
+  maskConfig: MaskConfig;
+  onToggleMask: () => void;
+  onChangeMaskParam: (key: string, value: any) => void;
+  onChangeMaskPattern: (pattern: string) => void;
+  onChangeZoneParam: (zone: 'zoneA' | 'zoneB', key: string, value: any) => void;
 
   // Presets
   presets: WorkshopPreset[];
@@ -227,6 +245,8 @@ export interface WorkshopPanelProps {
   onChangeRecordFps: (fps: number) => void;
   loopMode: 'loop' | 'pingpong';
   onChangeLoopMode: (mode: 'loop' | 'pingpong') => void;
+  trailEffect: boolean;
+  onChangeTrailEffect: (enabled: boolean) => void;
 }
 
 export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
@@ -255,6 +275,8 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   onToggleGlow,
   onChangeGlowColor,
   onChangeGlowRadius,
+  bgColor,
+  onChangeBgColor,
   onGiveAttack,
   onTakeAttack,
   activeDecomposition,
@@ -269,6 +291,15 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   auraParams,
   onToggleAura,
   onChangeAuraParam,
+  activeShields,
+  shieldParams,
+  onToggleShield,
+  onChangeShieldParam,
+  maskConfig,
+  onToggleMask,
+  onChangeMaskParam,
+  onChangeMaskPattern,
+  onChangeZoneParam,
   presets,
   onSavePreset,
   onLoadPreset,
@@ -292,6 +323,8 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   onChangeRecordFps,
   loopMode,
   onChangeLoopMode,
+  trailEffect,
+  onChangeTrailEffect,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
@@ -344,6 +377,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   );
   const filteredMorphs = filterItems(MORPH_IDS);
   const filteredAuras = filterItems(AURA_IDS);
+  const filteredShields = filterItems(SHIELD_IDS);
   const filteredShakes = filterItems(SHAKE_PATTERNS);
   const filteredSynths = filterItems(SYNTH_PRESET_KEYS);
   const filteredDecompositions = filterItems(DECOMPOSITION_EFFECTS);
@@ -631,6 +665,40 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
+      {/* Shields */}
+      {filteredShields.length > 0 && (
+        <Section title="Shields" count={filteredShields.length}>
+          {filteredShields.map((key) => {
+            const def = getShieldDef(key);
+            return (
+              <button
+                key={key}
+                onClick={() => onToggleShield(key)}
+                style={activeShields.includes(key) ? chipOn : chipOff}
+              >
+                {def?.displayName ?? key}
+              </button>
+            );
+          })}
+          {activeShields.map((shieldId) => {
+            const def = getShieldDef(shieldId);
+            if (!def || def.params.length === 0) return null;
+            return (
+              <div key={shieldId} style={{ width: '100%' }}>
+                <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(100,180,255,0.8)', padding: '6px 0 2px' }}>
+                  {def.displayName}
+                </div>
+                <FilterParamControls
+                  filterDef={def}
+                  values={shieldParams[shieldId] ?? {}}
+                  onChange={(key, value) => onChangeShieldParam(shieldId, key, value)}
+                />
+              </div>
+            );
+          })}
+        </Section>
+      )}
+
       {/* 3. Attacks */}
       {filteredAttacks.length > 0 && (
         <Section title="Attacks" count={filteredAttacks.length}>
@@ -710,6 +778,66 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
               </div>
             );
           })}
+        </Section>
+      )}
+
+      {/* Masked Effects */}
+      {(!q || 'masked mask'.includes(q)) && (
+        <Section title="Masked Effects" count={MASK_PATTERNS.length}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <button
+              onClick={onToggleMask}
+              style={maskConfig.enabled ? chipOn : chipOff}
+            >
+              {maskConfig.enabled ? 'Mask ON' : 'Mask OFF'}
+            </button>
+            {maskConfig.enabled && (
+              <>
+                <select
+                  value={maskConfig.pattern}
+                  onChange={(e) => onChangeMaskPattern(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 8px',
+                    fontSize: 12,
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.08)',
+                    color: '#fff',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                  }}
+                >
+                  {MASK_PATTERNS.map((p) => (
+                    <option key={p.id} value={p.id} style={{ background: '#1a1a2e' }}>
+                      {p.displayName}
+                    </option>
+                  ))}
+                </select>
+                <FilterParamControls
+                  filterDef={{ params: MASK_GLOBAL_PARAMS }}
+                  values={maskConfig}
+                  onChange={(key, value) => onChangeMaskParam(key, value)}
+                />
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(100,180,255,0.8)', textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 4 }}>
+                  Zone A
+                </div>
+                <FilterParamControls
+                  filterDef={{ params: ZONE_EFFECT_PARAMS }}
+                  values={maskConfig.zoneA}
+                  onChange={(key, value) => onChangeZoneParam('zoneA', key, value)}
+                />
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(168,85,247,0.8)', textTransform: 'uppercase', letterSpacing: 0.5, paddingTop: 4 }}>
+                  Zone B
+                </div>
+                <FilterParamControls
+                  filterDef={{ params: ZONE_EFFECT_PARAMS }}
+                  values={maskConfig.zoneB}
+                  onChange={(key, value) => onChangeZoneParam('zoneB', key, value)}
+                />
+              </>
+            )}
+          </div>
         </Section>
       )}
 
@@ -918,6 +1046,32 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
         </Section>
       )}
 
+      {/* Background */}
+      {(!q || 'background'.includes(q)) && (
+        <Section title="Background" count={1}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%' }}>
+            <label style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', minWidth: 40 }}>Color</label>
+            <input
+              type="color"
+              value={bgColor}
+              onChange={(e) => onChangeBgColor(e.target.value)}
+              style={{
+                width: 32,
+                height: 24,
+                padding: 0,
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 4,
+                background: 'none',
+                cursor: 'pointer',
+              }}
+            />
+            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
+              {bgColor}
+            </span>
+          </div>
+        </Section>
+      )}
+
       {/* Record NFT Loop */}
       {(!q || 'record nft loop'.includes(q)) && (
         <Section title="Record Loop" count={1}>
@@ -970,7 +1124,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
                   <input
                     type="range"
                     min={10}
-                    max={30}
+                    max={60}
                     step={5}
                     value={recordFps}
                     onChange={(e) => onChangeRecordFps(Number(e.target.value))}
@@ -998,6 +1152,12 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
                     </button>
                   ))}
                 </div>
+                <button
+                  onClick={() => onChangeTrailEffect(!trailEffect)}
+                  style={trailEffect ? chipOn : chipOff}
+                >
+                  Trail Effect
+                </button>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {[3, 5, 10].map((sec) => (
                     <button

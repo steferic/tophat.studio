@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { GodRaysSettings } from './environmentTypes';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 const VERTEX = /* glsl */ `
 varying float vY;
@@ -57,6 +58,8 @@ export const EnvironmentGodRays: React.FC<Props> = ({ settings, boxSize }) => {
     [settings.count, boxSize],
   );
 
+  const loopDuration = useLoopDuration();
+
   const coneGeo = useMemo(() => {
     const geo = new THREE.ConeGeometry(12, settings.originY, 8, 1, true);
     // Shift so apex is at top (y = originY) and base at y = 0
@@ -66,7 +69,7 @@ export const EnvironmentGodRays: React.FC<Props> = ({ settings, boxSize }) => {
 
   useFrame((state) => {
     if (!groupRef.current) return;
-    const t = state.clock.getElapsedTime() * settings.speed;
+    const rawT = state.clock.getElapsedTime();
 
     uniforms.uColor.value.set(settings.color);
     uniforms.uOpacity.value = settings.opacity;
@@ -74,9 +77,9 @@ export const EnvironmentGodRays: React.FC<Props> = ({ settings, boxSize }) => {
     groupRef.current.children.forEach((child, i) => {
       const ray = rays[i];
       if (!ray) return;
-      const sway = Math.sin(t * 0.3 + ray.phaseOffset) * 4;
+      const sway = Math.sin(rawT * qf(settings.speed * 0.3, loopDuration) + ray.phaseOffset) * 4;
       child.position.x = ray.x + sway;
-      child.position.z = ray.z + Math.cos(t * 0.2 + ray.phaseOffset) * 3;
+      child.position.z = ray.z + Math.cos(rawT * qf(settings.speed * 0.2, loopDuration) + ray.phaseOffset) * 3;
     });
   });
 

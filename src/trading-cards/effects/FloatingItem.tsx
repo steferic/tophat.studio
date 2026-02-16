@@ -4,6 +4,7 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useModelBounds } from './useModelBounds';
 import type { ItemMovementPattern } from '../arena/descriptorTypes';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 const ORBIT_RADIUS = 3.5;
 const HOVER_RADIUS = 2.5;
@@ -38,6 +39,8 @@ export const FloatingItem: React.FC<FloatingItemProps> = ({
   const maxDim = Math.max(boxSize.x, boxSize.y, boxSize.z);
   const normScale = maxDim > 0 ? (NORM_UNIT / maxDim) * scale : scale;
 
+  const loopDuration = useLoopDuration();
+
   const angleOffset = (index / Math.max(totalCount, 1)) * Math.PI * 2;
 
   useFrame(({ clock }) => {
@@ -46,14 +49,14 @@ export const FloatingItem: React.FC<FloatingItemProps> = ({
 
     switch (movement) {
       case 'orbit': {
-        const a = t * 0.6 + angleOffset;
+        const a = t * qf(0.6, loopDuration) + angleOffset;
         groupRef.current.position.set(
           Math.cos(a) * ORBIT_RADIUS,
-          0.4 + Math.sin(t * 1.8 + angleOffset) * 0.2,
+          0.4 + Math.sin(t * qf(1.8, loopDuration) + angleOffset) * 0.2,
           Math.sin(a) * ORBIT_RADIUS,
         );
-        groupRef.current.rotation.y = t * 1.2;
-        groupRef.current.rotation.x = Math.sin(t * 0.9 + angleOffset) * 0.15;
+        groupRef.current.rotation.y = t * qf(1.2, loopDuration);
+        groupRef.current.rotation.x = Math.sin(t * qf(0.9, loopDuration) + angleOffset) * 0.15;
         break;
       }
       case 'hover': {
@@ -61,20 +64,20 @@ export const FloatingItem: React.FC<FloatingItemProps> = ({
         const z = Math.sin(angleOffset) * HOVER_RADIUS;
         groupRef.current.position.set(
           x,
-          1.0 + Math.sin(t * 1.2 + angleOffset) * 0.3,
+          1.0 + Math.sin(t * qf(1.2, loopDuration) + angleOffset) * 0.3,
           z,
         );
-        groupRef.current.rotation.y = t * 0.3;
+        groupRef.current.rotation.y = t * qf(0.3, loopDuration);
         break;
       }
       case 'follow': {
-        const sway = Math.sin(t * 0.8 + angleOffset) * 1.5;
+        const sway = Math.sin(t * qf(0.8, loopDuration) + angleOffset) * 1.5;
         groupRef.current.position.set(
           sway,
-          0.5 + Math.sin(t * 1.5 + angleOffset) * 0.15,
+          0.5 + Math.sin(t * qf(1.5, loopDuration) + angleOffset) * 0.15,
           FOLLOW_Z_OFFSET - index * 1.5,
         );
-        groupRef.current.rotation.y = t * 0.5;
+        groupRef.current.rotation.y = t * qf(0.5, loopDuration);
         break;
       }
     }

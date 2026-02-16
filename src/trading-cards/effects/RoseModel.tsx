@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useModelBounds } from './useModelBounds';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 import type { ModelComponentProps } from '../arena/descriptorTypes';
 
@@ -19,6 +20,7 @@ export const RoseModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReac
   const targetScale = isEvolved ? 100 * 1.5 : 100;
 
   const { centerOffset, boxSize } = useModelBounds(scene);
+  const loopDuration = useLoopDuration();
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
@@ -112,28 +114,28 @@ export const RoseModel: React.FC<ModelComponentProps> = ({ activeAttack, hitReac
         groupRef.current.rotation.x += 0.06;
         groupRef.current.rotation.y += 0.09;
         groupRef.current.rotation.z += 0.04;
-        groupRef.current.position.x = Math.sin(t * 3) * 0.8;
-        groupRef.current.position.y = Math.sin(t * 2.3) * 0.5;
+        groupRef.current.position.x = Math.sin(t * qf(3, loopDuration)) * 0.8;
+        groupRef.current.position.y = Math.sin(t * qf(2.3, loopDuration)) * 0.5;
         groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
         return;
       }
 
       if (isDancing) {
-        groupRef.current.rotation.y = t * 3;
-        groupRef.current.position.y = Math.sin(t * 2) * 1.5 + 0.5;
-        groupRef.current.position.x = Math.sin(t * 1.5) * 1;
-        groupRef.current.rotation.z = Math.sin(t * 3) * 0.2;
-        groupRef.current.rotation.x = Math.cos(t * 2) * 0.15;
-        const s = targetScale + Math.sin(t * 4) * 8;
+        groupRef.current.rotation.y = t * qf(3, loopDuration);
+        groupRef.current.position.y = Math.sin(t * qf(2, loopDuration)) * 1.5 + 0.5;
+        groupRef.current.position.x = Math.sin(t * qf(1.5, loopDuration)) * 1;
+        groupRef.current.rotation.z = Math.sin(t * qf(3, loopDuration)) * 0.2;
+        groupRef.current.rotation.x = Math.cos(t * qf(2, loopDuration)) * 0.15;
+        const s = targetScale + Math.sin(t * qf(4, loopDuration)) * 8;
         groupRef.current.scale.setScalar(s);
         return;
       }
 
       groupRef.current.rotation.y += 0.003;
       groupRef.current.rotation.x *= 0.95;
-      groupRef.current.rotation.z = Math.sin(t * 0.8) * 0.05;
+      groupRef.current.rotation.z = Math.sin(t * qf(0.8, loopDuration)) * 0.05;
       groupRef.current.position.x *= 0.9;
-      groupRef.current.position.y = Math.sin(t * 1.2) * 0.3;
+      groupRef.current.position.y = Math.sin(t * qf(1.2, loopDuration)) * 0.3;
       groupRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.08);
       return;
     }

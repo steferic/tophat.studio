@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { WeatherSettings } from './environmentTypes';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 interface Particle {
   x: number;
@@ -40,6 +41,8 @@ export const EnvironmentWeather: React.FC<Props> = ({ settings, boxSize, boxHeig
     [count, boxSize, boxHeight, isSnow],
   );
 
+  const loopDuration = useLoopDuration();
+
   useFrame((state, delta) => {
     if (!meshRef.current || settings.type === 'none') return;
     const t = state.clock.getElapsedTime();
@@ -52,7 +55,7 @@ export const EnvironmentWeather: React.FC<Props> = ({ settings, boxSize, boxHeig
       // Drift
       p.x += (p.drift + settings.windX) * dt;
       if (isSnow) {
-        p.x += Math.sin(t * 0.8 + p.offset) * 0.3 * dt;
+        p.x += Math.sin(t * qf(0.8, loopDuration) + p.offset) * 0.3 * dt;
       }
 
       // Respawn at top

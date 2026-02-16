@@ -8,11 +8,13 @@ import { StatusEffectScene } from './StatusEffectScene';
 import { MorphEffect, createMorphUniforms, injectMorphVertexShader, updateMorphUniforms } from './MorphEffect';
 import type { MorphUniforms } from './MorphEffect';
 import { AuraEffect } from './AuraEffect';
+import { ShieldEffect } from './ShieldEffect';
 import { LightDispatcher } from './lights/LightDispatcher';
 import { ParticleDispatcher } from './particles/ParticleDispatcher';
 import { useModelBounds } from './useModelBounds';
 import type { CardDefinition, AttackParticleDescriptor, EvolvedEffectDescriptor } from '../arena/descriptorTypes';
 import type { TeleportAttacker, StatusEffect } from '../arena/types';
+import { useLoopDuration, qf } from '../workshop/loopContext';
 
 // ── Evolved Aura: Ghost Clone + Halo Ring ────────────────
 
@@ -80,6 +82,8 @@ const GhostClone: React.FC<{
   // Compute bounds from the unparented clone (no polluted parent transforms)
   const { centerOffset } = useModelBounds(ghostScene);
 
+  const loopDuration = useLoopDuration();
+
   useFrame((state) => {
     const src = sourceRef.current;
     if (!groupRef.current || !src) return;
@@ -90,7 +94,7 @@ const GhostClone: React.FC<{
     groupRef.current.rotation.copy(src.rotation);
 
     // Scale = source scale * multiplier, with breathing pulse
-    const breathe = 1 + Math.sin(t * 2.5) * 0.04;
+    const breathe = 1 + Math.sin(t * qf(2.5, loopDuration)) * 0.04;
     const s = auraScale * breathe;
     groupRef.current.scale.set(
       src.scale.x * s,
@@ -99,7 +103,7 @@ const GhostClone: React.FC<{
     );
 
     // Shimmer opacity (scales around the configured auraOpacity)
-    const pulse = (auraOpacity - 0.01) + Math.sin(t * 3) * 0.06 + Math.sin(t * 7.3) * 0.03;
+    const pulse = (auraOpacity - 0.01) + Math.sin(t * qf(3, loopDuration)) * 0.06 + Math.sin(t * qf(7.3, loopDuration)) * 0.03;
     groupRef.current.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         ((child as THREE.Mesh).material as THREE.MeshBasicMaterial).opacity = pulse;
@@ -107,7 +111,7 @@ const GhostClone: React.FC<{
     });
 
     // Update morph uniforms so ghost matches base model deformation
-    updateMorphUniforms(morphUniformRefs, activeMorphs, morphParams, t);
+    updateMorphUniforms(morphUniformRefs, activeMorphs, morphParams, t, loopDuration);
   });
 
   return (
@@ -143,6 +147,9 @@ interface ModelSceneProps {
   /** Aura effects */
   activeAuras?: string[];
   auraParams?: Record<string, Record<string, any>>;
+  /** Shield effects */
+  activeShields?: string[];
+  shieldParams?: Record<string, Record<string, any>>;
 }
 
 /**
@@ -167,6 +174,8 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
   morphParams = {},
   activeAuras = [],
   auraParams = {},
+  activeShields = [],
+  shieldParams = {},
 }) => {
   const { model, attackEffects } = definition;
   const ModelComponent = model.ModelComponent;
@@ -237,6 +246,10 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
             morphParams={morphParams}
             centerOffset={centerOffset}
           />
+        ))}
+        {/* Custom shields */}
+        {activeShields.map((id) => (
+          <ShieldEffect key={id} shieldId={id} shieldParams={shieldParams[id] ?? {}} modelScale={model.baseScale} />
         ))}
         {isEvolved && definition.evolvedEffects && (
           <>

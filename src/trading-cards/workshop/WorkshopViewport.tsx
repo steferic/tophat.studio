@@ -7,6 +7,7 @@ import { ModelScene } from '../effects/ModelScene';
 import { DecompositionScene } from '../effects/decomposition';
 import type { CardDefinition, CameraMovementDescriptor, AttackParticleDescriptor } from '../arena/descriptorTypes';
 import type { HitReaction, StatusEffect } from '../arena/types';
+import type { MaskConfig } from '../workshop/maskRegistry';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { EnvironmentConfig } from '../environment/environmentTypes';
 import { EnvironmentSky } from '../environment/EnvironmentSky';
@@ -15,6 +16,7 @@ import { EnvironmentWater } from '../environment/EnvironmentWater';
 import { EnvironmentWeather } from '../environment/EnvironmentWeather';
 import { EnvironmentGodRays } from '../environment/EnvironmentGodRays';
 import { EnvironmentClouds } from '../environment/EnvironmentClouds';
+import { LoopProvider } from './loopContext';
 
 // ── Saved Camera Persistence ────────────────────────────────
 
@@ -59,15 +61,25 @@ const CameraManager: React.FC<{
 // Overrides the R3F clock so elapsed time cycles modularly.
 // All useFrame-based animations see looped time → perfect seamless loop.
 
-const RecordingClock: React.FC<{ loopDuration: number }> = ({ loopDuration }) => {
+const RecordingClock: React.FC<{
+  loopDuration: number;
+  timeRef?: React.MutableRefObject<number | null>;
+}> = ({ loopDuration, timeRef }) => {
   const startRef = useRef(-1);
 
   useFrame((state) => {
-    if (startRef.current < 0) {
-      startRef.current = performance.now() / 1000;
+    let loopedTime: number;
+    if (timeRef?.current !== null && timeRef?.current !== undefined) {
+      // Deterministic mode: use exact time from capture loop
+      loopedTime = timeRef.current;
+    } else {
+      // Real-time mode: modular wall-clock time (warmup, preview)
+      if (startRef.current < 0) {
+        startRef.current = performance.now() / 1000;
+      }
+      const elapsed = performance.now() / 1000 - startRef.current;
+      loopedTime = elapsed % loopDuration;
     }
-    const elapsed = performance.now() / 1000 - startRef.current;
-    const loopedTime = elapsed % loopDuration;
 
     state.clock.elapsedTime = loopedTime;
     state.clock.getElapsedTime = () => loopedTime;
@@ -156,6 +168,13 @@ export interface WorkshopViewportProps {
   // Auras
   activeAuras?: string[];
   auraParams?: Record<string, Record<string, any>>;
+  // Shields
+  activeShields?: string[];
+  shieldParams?: Record<string, Record<string, any>>;
+  // Masked effects
+  maskConfig?: MaskConfig;
+  // Background color
+  bgColor?: string;
   // Environment backdrop
   envConfig?: EnvironmentConfig | null;
   modelPosition?: [number, number, number];
@@ -165,6 +184,7 @@ export interface WorkshopViewportProps {
   captureAspect?: number;
   // Recording clock override
   recordingLoop?: { duration: number } | null;
+  recordingTimeRef?: React.MutableRefObject<number | null>;
 }
 
 export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewportProps>(({
@@ -188,12 +208,17 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
   morphParams = {},
   activeAuras = [],
   auraParams = {},
+  activeShields = [],
+  shieldParams = {},
+  maskConfig,
+  bgColor,
   envConfig = null,
   modelPosition: envModelPos,
   modelRotationY: envModelRotY = 0,
   modelScale: envModelScale = 1,
   captureAspect,
   recordingLoop = null,
+  recordingTimeRef,
 }, ref) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -242,18 +267,19 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
         flex: 1,
         height: '100vh',
         position: 'relative',
-        background: envConfig ? '#000' : (definition.artBackground ?? 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 100%)'),
+        background: bgColor || '#000000',
         ...containerStyle,
       }}
     >
       <Canvas gl={{ preserveDrawingBuffer: true, antialias: true }}>
+        <LoopProvider value={recordingLoop?.duration ?? null}>
         <PerspectiveCamera makeDefault position={defaultPos} />
         <ambientLight intensity={Math.PI / 2} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} />
         <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
         <OrbitControls ref={controlsRef} enablePan enableZoom enableRotate zoomToCursor />
         <CameraManager controlsRef={controlsRef} savedCamera={savedCamera} />
-        {recordingLoop && <RecordingClock loopDuration={recordingLoop.duration} />}
+        {recordingLoop && <RecordingClock loopDuration={recordingLoop.duration} timeRef={recordingTimeRef} />}
         <CameraAnimator
           descriptor={attackCameraMovement}
           active={activeAttack !== null}
@@ -293,6 +319,8 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
               morphParams={morphParams}
               activeAuras={activeAuras}
               auraParams={auraParams}
+              activeShields={activeShields}
+              shieldParams={shieldParams}
             />
           </group>
           {activeDecomposition && (
@@ -307,9 +335,10 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
         </group>
         {(() => {
           const effectFilters = activeFilters.filter((f) => f !== 'blue-tint');
-          if (effectFilters.length === 0) return null;
-          return <VisualEffectPass filters={effectFilters} allParams={filterParams} />;
+          if (effectFilters.length === 0 && !maskConfig?.enabled) return null;
+          return <VisualEffectPass filters={effectFilters} allParams={filterParams} maskConfig={maskConfig} />;
         })()}
+        </LoopProvider>
       </Canvas>
 
       <FpsMeter />

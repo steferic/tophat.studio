@@ -7,6 +7,9 @@ import { playAttackSound } from '../engines/synthEngine';
 import { getFilterDef, getFilterDefaults } from './filterRegistry';
 import { getMorphDef, getMorphDefaults } from './morphRegistry';
 import { getAuraDef, getAuraDefaults } from './auraRegistry';
+import { getShieldDef, getShieldDefaults } from './shieldRegistry';
+import type { MaskConfig } from './maskRegistry';
+import { getDefaultMaskConfig } from './maskRegistry';
 import { ALL_WORKSHOP_MODELS, getWorkshopModel } from './modelRegistry';
 import { getAllPresets, savePreset, deletePreset, exportPresetJSON } from './presetStorage';
 import { getAllEnvironmentConfigs } from '../environment/environmentStorage';
@@ -47,6 +50,13 @@ export const Workshop: React.FC = () => {
   const [activeAuras, setActiveAuras] = useState<string[]>([]);
   const [auraParams, setAuraParams] = useState<Record<string, Record<string, any>>>({});
 
+  // Shields (multi-select)
+  const [activeShields, setActiveShields] = useState<string[]>([]);
+  const [shieldParams, setShieldParams] = useState<Record<string, Record<string, any>>>({});
+
+  // Masked effects
+  const [maskConfig, setMaskConfig] = useState<MaskConfig>(() => getDefaultMaskConfig());
+
   // Camera — increment trigger counter to re-fire via new descriptor ref
   const [cameraPreset, setCameraPreset] = useState<CameraPreset | null>(null);
   const [cameraTrigger, setCameraTrigger] = useState(0);
@@ -68,6 +78,9 @@ export const Workshop: React.FC = () => {
   const [glowColor, setGlowColor] = useState('#64b4ff');
   const [glowRadius, setGlowRadius] = useState(30);
 
+  // Background color
+  const [bgColor, setBgColor] = useState('#000000');
+
   // Attack preview
   const [attackMode, setAttackMode] = useState<'give' | 'take' | null>(null);
   const [activeAttackKey, setActiveAttackKey] = useState<string | null>(null);
@@ -79,10 +92,11 @@ export const Workshop: React.FC = () => {
 
   // Viewport ref + recording
   const viewportRef = useRef<WorkshopViewportRef>(null);
+  const recordingTimeRef = useRef<number | null>(null);
   const [recording, setRecording] = useState(false);
   const [recordProgress, setRecordProgress] = useState(0);
   const [recordResIdx, setRecordResIdx] = useState(0);
-  const [recordFps, setRecordFps] = useState(30);
+  const [recordFps, setRecordFps] = useState(60);
   const captureAspect = useMemo(
     () => RECORD_RESOLUTIONS[recordResIdx].w / RECORD_RESOLUTIONS[recordResIdx].h,
     [recordResIdx],
@@ -90,6 +104,7 @@ export const Workshop: React.FC = () => {
   const [previewGif, setPreviewGif] = useState<{ url: string; filename: string } | null>(null);
   const [recordingLoop, setRecordingLoop] = useState<{ duration: number } | null>(null);
   const [loopMode, setLoopMode] = useState<'loop' | 'pingpong'>('loop');
+  const [trailEffect, setTrailEffect] = useState(false);
 
   // Environment
   const [envConfigs, setEnvConfigs] = useState<EnvironmentConfig[]>(() => getAllEnvironmentConfigs());
@@ -142,6 +157,7 @@ export const Workshop: React.FC = () => {
     setActiveFilters([]);
     setActiveMorphs([]);
     setActiveAuras([]);
+    setActiveShields([]);
     setIsDancing(false);
     setIsEvolving(false);
     setIsEvolved(false);
@@ -210,6 +226,44 @@ export const Workshop: React.FC = () => {
     setAuraParams((prev) => ({
       ...prev,
       [auraId]: { ...(prev[auraId] ?? {}), [key]: value },
+    }));
+  }, []);
+
+  const handleToggleShield = useCallback((shieldId: string) => {
+    setActiveShields((prev) =>
+      prev.includes(shieldId) ? prev.filter((s) => s !== shieldId) : [...prev, shieldId],
+    );
+    if (!shieldParams[shieldId]) {
+      const def = getShieldDef(shieldId);
+      if (def) {
+        setShieldParams((prev) => ({ ...prev, [shieldId]: getShieldDefaults(shieldId) }));
+      }
+    }
+  }, [shieldParams]);
+
+  const handleChangeShieldParam = useCallback((shieldId: string, key: string, value: any) => {
+    setShieldParams((prev) => ({
+      ...prev,
+      [shieldId]: { ...(prev[shieldId] ?? {}), [key]: value },
+    }));
+  }, []);
+
+  const handleToggleMask = useCallback(() => {
+    setMaskConfig((prev) => ({ ...prev, enabled: !prev.enabled }));
+  }, []);
+
+  const handleChangeMaskParam = useCallback((key: string, value: any) => {
+    setMaskConfig((prev) => ({ ...prev, [key]: value }));
+  }, []);
+
+  const handleChangeMaskPattern = useCallback((pattern: string) => {
+    setMaskConfig((prev) => ({ ...prev, pattern }));
+  }, []);
+
+  const handleChangeZoneParam = useCallback((zone: 'zoneA' | 'zoneB', key: string, value: any) => {
+    setMaskConfig((prev) => ({
+      ...prev,
+      [zone]: { ...prev[zone], [key]: value },
     }));
   }, []);
 
@@ -412,6 +466,7 @@ export const Workshop: React.FC = () => {
         config: {
           morphs: { active: activeMorphs, params: morphParams },
           auras: { active: activeAuras, params: auraParams },
+          shields: { active: activeShields, params: shieldParams },
           filters: { active: activeFilters, params: filterParams },
           state: { evolved: isEvolved, dancing: isDancing },
           glow: { enabled: glowEnabled, color: glowColor, radius: glowRadius },
@@ -420,7 +475,7 @@ export const Workshop: React.FC = () => {
       savePreset(preset);
       setPresets(getAllPresets());
     },
-    [selectedModelId, activeMorphs, morphParams, activeAuras, auraParams, activeFilters, filterParams, isEvolved, isDancing, glowEnabled, glowColor, glowRadius],
+    [selectedModelId, activeMorphs, morphParams, activeAuras, auraParams, activeShields, shieldParams, activeFilters, filterParams, isEvolved, isDancing, glowEnabled, glowColor, glowRadius],
   );
 
   const handleLoadPreset = useCallback(
@@ -432,6 +487,13 @@ export const Workshop: React.FC = () => {
       setMorphParams(config.morphs.params);
       setActiveAuras(config.auras.active);
       setAuraParams(config.auras.params);
+      if (config.shields) {
+        setActiveShields(config.shields.active);
+        setShieldParams(config.shields.params);
+      } else {
+        setActiveShields([]);
+        setShieldParams({});
+      }
       setActiveFilters(config.filters.active);
       setFilterParams(config.filters.params);
       setIsEvolved(config.state.evolved);
@@ -470,8 +532,6 @@ export const Workshop: React.FC = () => {
     const isPingPong = loopMode === 'pingpong';
 
     try {
-      const captureInterval = 1000 / fps;
-
       // Offscreen canvas at target resolution
       const offscreen = document.createElement('canvas');
       offscreen.width = width;
@@ -498,56 +558,72 @@ export const Workshop: React.FC = () => {
 
       // How many raw frames to capture
       const totalOutputFrames = durationSec * fps;
+      // For loop mode: capture extra overlap frames for cross-dissolve
+      const BLEND_SEC = 1.0;
+      const blendFrames = isPingPong ? 0 : Math.ceil(fps * BLEND_SEC);
       const captureFrames = isPingPong
         ? Math.ceil((totalOutputFrames + 2) / 2)
-        : totalOutputFrames;
+        : totalOutputFrames + blendFrames;
 
-      // For true loop mode: activate clock override so time cycles
-      if (!isPingPong) {
-        setRecordingLoop({ duration: durationSec });
+      // Activate clock override (loopDuration drives qf() frequency quantization)
+      setRecordingLoop({ duration: durationSec });
 
-        // Warm-up — one full cycle so particles reach steady state
-        await new Promise<void>((resolve) => {
-          const warmupMs = durationSec * 1000;
-          const start = performance.now();
-          const tick = () => {
-            const elapsed = performance.now() - start;
-            setRecordProgress(Math.min(elapsed / warmupMs, 1) * 0.15);
-            if (elapsed >= warmupMs) { resolve(); return; }
-            requestAnimationFrame(tick);
-          };
-          requestAnimationFrame(tick);
-        });
-      }
-
-      // Capture frames via RAF
-      const progressBase = isPingPong ? 0 : 0.15;
-      const progressCapture = 0.35;
-      const frameDataList: ImageData[] = [];
+      // Warm-up — one full cycle in real-time so particles reach steady state
+      recordingTimeRef.current = null; // real-time mode for warmup
       await new Promise<void>((resolve) => {
-        let count = 0;
-        let lastCapture = 0;
-        const tick = (time: number) => {
-          if (count >= captureFrames) { resolve(); return; }
-          if (time - lastCapture >= captureInterval) {
-            ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, width, height);
-            frameDataList.push(ctx.getImageData(0, 0, width, height));
-            count++;
-            lastCapture = time;
-            setRecordProgress(progressBase + (count / captureFrames) * progressCapture);
-          }
+        const warmupMs = durationSec * 1000;
+        const start = performance.now();
+        const tick = () => {
+          const elapsed = performance.now() - start;
+          setRecordProgress(Math.min(elapsed / warmupMs, 1) * 0.15);
+          if (elapsed >= warmupMs) { resolve(); return; }
           requestAnimationFrame(tick);
         };
         requestAnimationFrame(tick);
       });
 
+      // Deterministic capture: set exact time per frame, wait for render, capture
+      // Time advances linearly at 1/fps per frame (may exceed durationSec for overlap)
+      //
+      // 'copy' composite: each drawImage fully replaces the canvas (clean frames).
+      // 'source-over': semi-transparent WebGL pixels composite on top of the
+      // previous frame, creating an accumulation / motion-trail effect.
+      ctx.globalCompositeOperation = trailEffect ? 'source-over' : 'copy';
+      const progressBase = 0.15;
+      const progressCapture = 0.35;
+      const frameDataList: ImageData[] = [];
+      for (let i = 0; i < captureFrames; i++) {
+        const t = i / fps;
+        recordingTimeRef.current = t;
+        // Wait two rAFs: one for R3F to process the new time, one for GPU to finish
+        await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+        ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, width, height);
+        frameDataList.push(ctx.getImageData(0, 0, width, height));
+        setRecordProgress(progressBase + ((i + 1) / captureFrames) * progressCapture);
+      }
+
       // Deactivate clock override
+      recordingTimeRef.current = null;
       setRecordingLoop(null);
 
       // Assemble final frame sequence
-      const outputFrames = isPingPong
-        ? [...frameDataList, ...frameDataList.slice(1, -1).reverse()]
-        : frameDataList;
+      let outputFrames: ImageData[];
+      if (isPingPong) {
+        outputFrames = [...frameDataList, ...frameDataList.slice(1, -1).reverse()];
+      } else {
+        // Overlap cross-dissolve: blend the extra frames INTO the start
+        // frame[N+i] is temporally adjacent to frame[N-1], so the loop
+        // boundary (last output frame → first output frame) is seamless.
+        outputFrames = frameDataList.slice(0, totalOutputFrames);
+        for (let i = 0; i < blendFrames; i++) {
+          const t = i / blendFrames; // 0→1
+          const overlapData = frameDataList[totalOutputFrames + i].data;
+          const startData = outputFrames[i].data;
+          for (let p = 0; p < startData.length; p++) {
+            startData[p] = Math.round(overlapData[p] * (1 - t) + startData[p] * t);
+          }
+        }
+      }
 
       // Build global palette from sampled pixels
       const paletteStart = progressBase + progressCapture;
@@ -592,7 +668,7 @@ export const Workshop: React.FC = () => {
       setRecordProgress(0);
       setRecordingLoop(null);
     }
-  }, [recording, loopMode]);
+  }, [recording, loopMode, trailEffect]);
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
@@ -622,6 +698,8 @@ export const Workshop: React.FC = () => {
         onToggleGlow={() => setGlowEnabled((v) => !v)}
         onChangeGlowColor={setGlowColor}
         onChangeGlowRadius={setGlowRadius}
+        bgColor={bgColor}
+        onChangeBgColor={setBgColor}
         onGiveAttack={handleGiveAttack}
         onTakeAttack={handleTakeAttack}
         activeDecomposition={activeDecomposition}
@@ -636,6 +714,15 @@ export const Workshop: React.FC = () => {
         auraParams={auraParams}
         onToggleAura={handleToggleAura}
         onChangeAuraParam={handleChangeAuraParam}
+        activeShields={activeShields}
+        shieldParams={shieldParams}
+        onToggleShield={handleToggleShield}
+        onChangeShieldParam={handleChangeShieldParam}
+        maskConfig={maskConfig}
+        onToggleMask={handleToggleMask}
+        onChangeMaskParam={handleChangeMaskParam}
+        onChangeMaskPattern={handleChangeMaskPattern}
+        onChangeZoneParam={handleChangeZoneParam}
         presets={presets}
         onSavePreset={handleSavePreset}
         onLoadPreset={handleLoadPreset}
@@ -659,6 +746,8 @@ export const Workshop: React.FC = () => {
         onChangeRecordFps={setRecordFps}
         loopMode={loopMode}
         onChangeLoopMode={setLoopMode}
+        trailEffect={trailEffect}
+        onChangeTrailEffect={setTrailEffect}
       />
 
       {/* Spacer for panel width */}
@@ -686,12 +775,17 @@ export const Workshop: React.FC = () => {
         morphParams={morphParams}
         activeAuras={activeAuras}
         auraParams={auraParams}
+        activeShields={activeShields}
+        shieldParams={shieldParams}
+        maskConfig={maskConfig}
         envConfig={envConfigs.find((c) => c.id === selectedEnvId) ?? null}
         modelPosition={modelPosition}
         modelRotationY={modelRotationY}
         modelScale={modelScale}
+        bgColor={bgColor}
         captureAspect={captureAspect}
         recordingLoop={recordingLoop}
+        recordingTimeRef={recordingTimeRef}
       />
 
       {/* GIF Preview Overlay */}

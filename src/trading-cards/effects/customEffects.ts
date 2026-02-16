@@ -1,15 +1,44 @@
 import { Uniform } from 'three';
 import { Effect } from 'postprocessing';
 
+// ── Loop-quantization GLSL helpers (shared by animated effects) ──
+
+const LOOP_HELPERS_GLSL = /* glsl */ `
+uniform float uTime;
+uniform float uLoopDuration;
+
+float qSinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float TAU = 6.283185307179586;
+  float cycles = max(1.0, floor(freq * uLoopDuration / TAU + 0.5));
+  return cycles * TAU / uLoopDuration;
+}
+float qLinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float cycles = max(1.0, floor(freq * uLoopDuration + 0.5));
+  return cycles / uLoopDuration;
+}
+`;
+
+/** Standard uniforms for animated effects (uTime + uLoopDuration) */
+function loopUniforms(): Map<string, Uniform> {
+  return new Map([
+    ['uTime', new Uniform(0)],
+    ['uLoopDuration', new Uniform(0)],
+  ]);
+}
+
 // ── Night Vision ────────────────────────────────────────────
 
 const NIGHT_VISION_FRAG = /* glsl */ `
+${LOOP_HELPERS_GLSL}
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec4 color = texture2D(inputBuffer, uv);
   float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
 
-  // Noise
-  float noise = fract(sin(dot(uv * time * 80.0, vec2(12.9898, 78.233))) * 43758.5453);
+  // Noise (quantized so seed loops)
+  float noise = fract(sin(dot(uv * uTime * qLinFreq(80.0), vec2(12.9898, 78.233))) * 43758.5453);
   luma += (noise - 0.5) * 0.15;
 
   // Vignette
@@ -23,7 +52,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 export class NightVisionEffect extends Effect {
   constructor() {
-    super('NightVisionEffect', NIGHT_VISION_FRAG, { uniforms: new Map() });
+    super('NightVisionEffect', NIGHT_VISION_FRAG, { uniforms: loopUniforms() });
   }
 }
 
@@ -119,9 +148,11 @@ export class CRTEffect extends Effect {
 // ── VHS ─────────────────────────────────────────────────────
 
 const VHS_FRAG = /* glsl */ `
+${LOOP_HELPERS_GLSL}
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
-  // Jitter
-  float jitter = sin(time * 40.0 + uv.y * 300.0) * 0.002;
+  // Jitter (quantized frequency)
+  float jitter = sin(uTime * qSinFreq(40.0) + uv.y * 300.0) * 0.002;
   vec2 distUV = uv + vec2(jitter, 0.0);
 
   // Color bleeding (vertical channel shift)
@@ -131,8 +162,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
   vec3 color = vec3(r, g, b);
 
-  // Tracking band — thin horizontal noise band that scrolls
-  float bandPos = fract(time * 0.08);
+  // Tracking band — thin horizontal noise band that scrolls (quantized)
+  float bandPos = fract(uTime * qLinFreq(0.08));
   float bandDist = abs(fract(uv.y) - bandPos);
   float band = smoothstep(0.0, 0.03, bandDist);
   color = mix(color * 0.4 + vec3(0.15, 0.05, 0.05), color, band);
@@ -141,8 +172,8 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   float luma = dot(color, vec3(0.299, 0.587, 0.114));
   color = mix(vec3(luma), color, 0.75);
 
-  // Noise grain
-  float noise = fract(sin(dot(uv + fract(time), vec2(12.9898, 78.233))) * 43758.5453);
+  // Noise grain (quantized seed)
+  float noise = fract(sin(dot(uv + fract(uTime * qLinFreq(1.0)), vec2(12.9898, 78.233))) * 43758.5453);
   color += (noise - 0.5) * 0.08;
 
   outputColor = vec4(color, 1.0);
@@ -151,7 +182,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 export class VHSEffect extends Effect {
   constructor() {
-    super('VHSEffect', VHS_FRAG, { uniforms: new Map() });
+    super('VHSEffect', VHS_FRAG, { uniforms: loopUniforms() });
   }
 }
 
@@ -204,10 +235,12 @@ export class EdgeDetectEffect extends Effect {
 // ── Underwater ──────────────────────────────────────────────
 
 const UNDERWATER_FRAG = /* glsl */ `
+${LOOP_HELPERS_GLSL}
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec2 warp = uv;
-  warp.x += sin(uv.y * 20.0 + time * 2.0) * 0.008;
-  warp.y += cos(uv.x * 15.0 + time * 1.5) * 0.006;
+  warp.x += sin(uv.y * 20.0 + uTime * qSinFreq(2.0)) * 0.008;
+  warp.y += cos(uv.x * 15.0 + uTime * qSinFreq(1.5)) * 0.006;
 
   vec4 color = texture2D(inputBuffer, warp);
 
@@ -227,7 +260,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 export class UnderwaterEffect extends Effect {
   constructor() {
-    super('UnderwaterEffect', UNDERWATER_FRAG, { uniforms: new Map() });
+    super('UnderwaterEffect', UNDERWATER_FRAG, { uniforms: loopUniforms() });
   }
 }
 
@@ -259,6 +292,8 @@ export class DuotoneEffect extends Effect {
 // ── Hologram ────────────────────────────────────────────────
 
 const HOLOGRAM_FRAG = /* glsl */ `
+${LOOP_HELPERS_GLSL}
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec4 color = texture2D(inputBuffer, uv);
   float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
@@ -267,14 +302,14 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
   float scanline = sin(uv.y * resolution.y * 1.5) * 0.5 + 0.5;
   scanline = smoothstep(0.3, 0.7, scanline);
 
-  // Flicker
-  float flicker = 0.95 + 0.05 * sin(time * 12.0);
+  // Flicker (quantized)
+  float flicker = 0.95 + 0.05 * sin(uTime * qSinFreq(12.0));
 
   // Blue hologram color
   vec3 holo = vec3(0.15, 0.5, 1.0) * luma * scanline * flicker;
 
-  // Slight horizontal jitter
-  float jitter = sin(time * 20.0 + uv.y * 100.0) * 0.001;
+  // Slight horizontal jitter (quantized)
+  float jitter = sin(uTime * qSinFreq(20.0) + uv.y * 100.0) * 0.001;
   vec3 shifted = texture2D(inputBuffer, uv + vec2(jitter, 0.0)).rgb;
   float shiftedLuma = dot(shifted, vec3(0.299, 0.587, 0.114));
 
@@ -286,7 +321,7 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 export class HologramEffect extends Effect {
   constructor() {
-    super('HologramEffect', HOLOGRAM_FRAG, { uniforms: new Map() });
+    super('HologramEffect', HOLOGRAM_FRAG, { uniforms: loopUniforms() });
   }
 }
 
@@ -378,11 +413,13 @@ export class EmbossEffect extends Effect {
 // ── Ripple ──────────────────────────────────────────────────
 
 const RIPPLE_FRAG = /* glsl */ `
+${LOOP_HELPERS_GLSL}
+
 void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor) {
   vec2 centered = uv - 0.5;
   float dist = length(centered);
 
-  float wave = sin(dist * 40.0 - time * 4.0) * 0.01;
+  float wave = sin(dist * 40.0 - uTime * qSinFreq(4.0)) * 0.01;
   wave *= smoothstep(0.5, 0.0, dist); // fade at edges
 
   vec2 displaced = uv + normalize(centered + 0.001) * wave;
@@ -393,6 +430,6 @@ void mainImage(const in vec4 inputColor, const in vec2 uv, out vec4 outputColor)
 
 export class RippleEffect extends Effect {
   constructor() {
-    super('RippleEffect', RIPPLE_FRAG, { uniforms: new Map() });
+    super('RippleEffect', RIPPLE_FRAG, { uniforms: loopUniforms() });
   }
 }

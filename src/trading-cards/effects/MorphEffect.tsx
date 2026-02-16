@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useLoopDuration } from '../workshop/loopContext';
 
 // ── Ashima simplex 3D noise (MIT) — suffixed to avoid collisions ──
 export const SIMPLEX_GLSL = /* glsl */ `
@@ -56,6 +57,18 @@ float snoise_m(vec3 v) {
 // All displacements are scaled by uBoundsScale (max bounding box dimension)
 // so effects are proportional to model size regardless of raw geometry units.
 export const MORPH_FUNCTIONS_GLSL = /* glsl */ `
+float qSinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float TAU = 6.283185307179586;
+  float cycles = max(1.0, floor(freq * uLoopDuration / TAU + 0.5));
+  return cycles * TAU / uLoopDuration;
+}
+float qLinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float cycles = max(1.0, floor(freq * uLoopDuration + 0.5));
+  return cycles / uLoopDuration;
+}
+
 vec3 safeNormalize(vec3 v) {
   float len = length(v);
   return len > 0.0001 ? v / len : vec3(0.0);
@@ -108,8 +121,8 @@ vec3 morphStretch(vec3 pos, float factor, vec3 center) {
 }
 
 vec3 morphWobble(vec3 pos, float amplitude, float frequency, float time, float boundsScale) {
-  float wave = sin(pos.y / boundsScale * frequency + time * 3.0) * amplitude * boundsScale * 0.12;
-  float wave2 = cos(pos.y / boundsScale * frequency * 0.7 + time * 2.3) * amplitude * boundsScale * 0.08;
+  float wave = sin(pos.y / boundsScale * frequency + time * qSinFreq(3.0)) * amplitude * boundsScale * 0.12;
+  float wave2 = cos(pos.y / boundsScale * frequency * 0.7 + time * qSinFreq(2.3)) * amplitude * boundsScale * 0.08;
   return vec3(wave, 0.0, wave2);
 }
 
@@ -139,6 +152,7 @@ uniform float uBoundsScale;
 uniform vec3 uBoundsMin;
 uniform vec3 uBoundsSize;
 uniform vec3 uBoundsCenter;
+uniform float uLoopDuration;
 `;
 
 // ── Displacement code (injected after begin_vertex) ───────
@@ -191,6 +205,7 @@ export interface MorphUniforms {
   uBoundsMin: { value: THREE.Vector3 };
   uBoundsSize: { value: THREE.Vector3 };
   uBoundsCenter: { value: THREE.Vector3 };
+  uLoopDuration: { value: number };
 }
 
 export function createMorphUniforms(boundsMin: THREE.Vector3, boundsSize: THREE.Vector3, boundsCenter: THREE.Vector3): MorphUniforms {
@@ -212,6 +227,7 @@ export function createMorphUniforms(boundsMin: THREE.Vector3, boundsSize: THREE.
     uBoundsMin: { value: boundsMin.clone() },
     uBoundsSize: { value: boundsSize.clone() },
     uBoundsCenter: { value: boundsCenter.clone() },
+    uLoopDuration: { value: 0 },
   };
 }
 
@@ -299,10 +315,12 @@ export function updateMorphUniforms(
   activeMorphs: string[],
   morphParams: Record<string, Record<string, any>>,
   time: number,
+  loopDuration?: number | null,
 ): void {
   const activeSet = new Set(activeMorphs);
   for (const u of uniformRefs) {
     u.uMorphTime.value = time;
+    u.uLoopDuration.value = loopDuration ?? 0;
 
     if (activeSet.has('bloat')) {
       const p = morphParams['bloat'] ?? {};
@@ -371,6 +389,7 @@ export const MorphEffect: React.FC<MorphEffectProps> = ({
   centerOffset,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
+  const loopDuration = useLoopDuration();
 
   const { clonedScene, uniformRefs } = useMemo(() => {
     const clone = scene.clone(true);
@@ -441,7 +460,7 @@ export const MorphEffect: React.FC<MorphEffectProps> = ({
     groupRef.current.rotation.copy(src.rotation);
     groupRef.current.scale.copy(src.scale);
 
-    updateMorphUniforms(uniformRefs, activeMorphs, morphParams, state.clock.getElapsedTime());
+    updateMorphUniforms(uniformRefs, activeMorphs, morphParams, state.clock.getElapsedTime(), loopDuration);
   });
 
   return (

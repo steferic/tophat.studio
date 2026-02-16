@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useLoopDuration } from '../workshop/loopContext';
 import {
   SIMPLEX_GLSL,
   MORPH_FUNCTIONS_GLSL,
@@ -145,7 +146,7 @@ void main() {
     transformed.y -= 0.01 * uBoundsScale;
   } else if (uAuraType == 4) {
     // Prismatic: gentle wave
-    float wave = sin(heightNorm * 6.28 + t * 2.0) * uBoundsScale * 0.03;
+    float wave = sin(heightNorm * 6.28 + uTime * qSinFreq(uAuraSpeed * 2.0)) * uBoundsScale * 0.03;
     transformed += dir * wave;
   } else if (uAuraType == 5) {
     // Frost: crystalline spikes
@@ -154,11 +155,11 @@ void main() {
     transformed += dir * crystal * uAuraIntensity * uBoundsScale * 0.05;
   } else if (uAuraType == 6) {
     // Void: pulsing expansion (BackSide → outline)
-    float pulse = 1.0 + sin(t * 1.5) * 0.1;
+    float pulse = 1.0 + sin(uTime * qSinFreq(uAuraSpeed * 1.5)) * 0.1;
     transformed += dir * uAuraScale * uBoundsScale * 0.02 * pulse;
   } else if (uAuraType == 7) {
     // Solar: corona + flicker
-    float corona = sin(heightNorm * 3.14 + t * 2.0) * uAuraIntensity * uBoundsScale * 0.08;
+    float corona = sin(heightNorm * 3.14 + uTime * qSinFreq(uAuraSpeed * 2.0)) * uAuraIntensity * uBoundsScale * 0.08;
     float flicker = snoise_m(vec3(transformed.xz / uBoundsScale * 5.0, t * 3.0)) * uBoundsScale * 0.04;
     transformed += dir * (corona + flicker);
   }
@@ -179,6 +180,19 @@ uniform float uAuraOpacity;
 uniform float uAuraSpeed;
 uniform float uAuraIntensity;
 uniform int uAuraType;
+uniform float uLoopDuration;
+
+float qSinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float TAU = 6.283185307179586;
+  float cycles = max(1.0, floor(freq * uLoopDuration / TAU + 0.5));
+  return cycles * TAU / uLoopDuration;
+}
+float qLinFreq(float freq) {
+  if (uLoopDuration <= 0.0) return freq;
+  float cycles = max(1.0, floor(freq * uLoopDuration + 0.5));
+  return cycles / uLoopDuration;
+}
 
 varying float vHeightNorm;
 varying vec3 vLocalPos;
@@ -192,52 +206,51 @@ vec3 hsv2rgb(vec3 c) {
 }
 
 void main() {
-  float t = uTime * uAuraSpeed;
   vec3 color = uAuraColor;
   float alpha = uAuraOpacity;
 
   if (uAuraType == 0) {
     // Ghost: breathing pulse + dual-frequency shimmer
-    alpha *= 0.7 + sin(t * 2.5) * 0.3;
-    alpha += sin(t * 3.0) * 0.04 + sin(t * 7.3) * 0.02;
+    alpha *= 0.7 + sin(uTime * qSinFreq(uAuraSpeed * 2.5)) * 0.3;
+    alpha += sin(uTime * qSinFreq(uAuraSpeed * 3.0)) * 0.04 + sin(uTime * qSinFreq(uAuraSpeed * 7.3)) * 0.02;
   } else if (uAuraType == 1) {
     // Flame: gradient orange→yellow, fade at top, flicker
     color = mix(uAuraColor, vec3(1.0, 1.0, 0.3), vHeightNorm * 0.7);
     float flameMask = 1.0 - smoothstep(0.6, 1.0, vHeightNorm);
     alpha *= flameMask * (0.6 + vNoise * 0.4);
-    alpha *= 0.7 + sin(t * 8.0 + vHeightNorm * 4.0) * 0.3;
+    alpha *= 0.7 + sin(uTime * qSinFreq(uAuraSpeed * 8.0) + vHeightNorm * 4.0) * 0.3;
   } else if (uAuraType == 2) {
     // Electric: white-blue flashes, rapid flicker
     float flash = step(0.7, abs(vNoise));
     color = mix(uAuraColor, vec3(1.0), flash * 0.8);
     alpha *= 0.4 + flash * 0.6;
-    alpha *= 0.5 + step(0.3, fract(t * 15.0 + vNoise * 5.0)) * 0.5;
+    alpha *= 0.5 + step(0.3, fract(uTime * qLinFreq(uAuraSpeed * 15.0) + vNoise * 5.0)) * 0.5;
   } else if (uAuraType == 3) {
     // Shadow: subtle opacity variation, slow pulse
     alpha *= 0.8 + vNoise * 0.2;
-    alpha *= 0.85 + sin(t * 1.5) * 0.15;
+    alpha *= 0.85 + sin(uTime * qSinFreq(uAuraSpeed * 1.5)) * 0.15;
   } else if (uAuraType == 4) {
     // Prismatic: rainbow hue cycling
-    float hue = fract(vHeightNorm * 0.5 + t * 0.3 + vNoise * 0.2);
+    float hue = fract(vHeightNorm * 0.5 + uTime * qLinFreq(uAuraSpeed * 0.3) + vNoise * 0.2);
     color = hsv2rgb(vec3(hue, 0.9, 1.0));
-    alpha *= 0.7 + sin(t * 2.0 + vHeightNorm * 3.0) * 0.3;
+    alpha *= 0.7 + sin(uTime * qSinFreq(uAuraSpeed * 2.0) + vHeightNorm * 3.0) * 0.3;
   } else if (uAuraType == 5) {
     // Frost: sparkle, pale blue shimmer
     float sparkle = smoothstep(0.5, 0.8, abs(vNoise));
     color = mix(uAuraColor, vec3(1.0), sparkle * 0.6);
     alpha *= 0.6 + sparkle * 0.4;
-    alpha *= 0.8 + sin(t * 1.8 + vHeightNorm * 5.0) * 0.2;
+    alpha *= 0.8 + sin(uTime * qSinFreq(uAuraSpeed * 1.8) + vHeightNorm * 5.0) * 0.2;
   } else if (uAuraType == 6) {
     // Void: edge brightening, ominous pulse
     float edgeFade = 1.0 - abs(dot(normalize(vNormal), vec3(0.0, 0.0, 1.0)));
     color = mix(uAuraColor, vec3(0.5, 0.0, 1.0), edgeFade * 0.5);
     alpha *= 0.6 + edgeFade * 0.4;
-    alpha *= 0.8 + sin(t * 1.2) * 0.2;
+    alpha *= 0.8 + sin(uTime * qSinFreq(uAuraSpeed * 1.2)) * 0.2;
   } else if (uAuraType == 7) {
     // Solar: golden glow, corona pulse
     float glow = 1.0 - vHeightNorm * 0.3;
     color = mix(uAuraColor, vec3(1.0, 1.0, 0.8), glow * 0.4);
-    alpha *= 0.5 + sin(t * 3.0) * 0.3 + sin(t * 7.0) * 0.2;
+    alpha *= 0.5 + sin(uTime * qSinFreq(uAuraSpeed * 3.0)) * 0.3 + sin(uTime * qSinFreq(uAuraSpeed * 7.0)) * 0.2;
     color += vec3(0.1) * max(vNoise, 0.0);
   }
 
@@ -268,6 +281,7 @@ export const AuraEffect: React.FC<AuraEffectProps> = ({
   centerOffset,
 }) => {
   const groupRef = useRef<THREE.Group>(null);
+  const loopDuration = useLoopDuration();
   const auraType = AURA_TYPE_MAP[auraId] ?? 0;
   const renderConfig = AURA_RENDER_CONFIG[auraId] ?? DEFAULT_CONFIG;
 
@@ -326,7 +340,7 @@ export const AuraEffect: React.FC<AuraEffectProps> = ({
     const time = state.clock.getElapsedTime();
 
     // Update morph uniforms (mirrors base model deformation)
-    updateMorphUniforms(morphUniformRefs, activeMorphs, morphParams, time);
+    updateMorphUniforms(morphUniformRefs, activeMorphs, morphParams, time, loopDuration);
 
     // Update aura uniforms
     const color = auraParams.color ?? '#ffffff';
