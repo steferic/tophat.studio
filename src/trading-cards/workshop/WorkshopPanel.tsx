@@ -7,6 +7,12 @@ import { FILTER_IDS, getFilterDef } from './filterRegistry';
 import { MORPH_IDS, getMorphDef } from './morphRegistry';
 import { AURA_IDS, getAuraDef } from './auraRegistry';
 import { FilterParamControls } from './FilterParamControls';
+export const RECORD_RESOLUTIONS = [
+  { label: '1080\u00d71080 Square', w: 1080, h: 1080 },
+  { label: '1080\u00d71920 Portrait', w: 1080, h: 1920 },
+  { label: '1920\u00d71080 Landscape', w: 1920, h: 1080 },
+  { label: '720\u00d7720 Small', w: 720, h: 720 },
+] as const;
 
 const CAMERA_PRESETS: CameraPreset[] = [
   'close-up',
@@ -210,6 +216,17 @@ export interface WorkshopPanelProps {
   onChangeModelPosition: (axis: 0 | 1 | 2, value: number) => void;
   onChangeModelRotationY: (value: number) => void;
   onChangeModelScale: (value: number) => void;
+
+  // Recording
+  onRecord: (durationSec: number, width: number, height: number, fps: number) => void;
+  recording: boolean;
+  recordProgress: number;
+  recordResIdx: number;
+  onChangeRecordResIdx: (idx: number) => void;
+  recordFps: number;
+  onChangeRecordFps: (fps: number) => void;
+  loopMode: 'loop' | 'pingpong';
+  onChangeLoopMode: (mode: 'loop' | 'pingpong') => void;
 }
 
 export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
@@ -266,6 +283,15 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   onChangeModelPosition,
   onChangeModelRotationY,
   onChangeModelScale,
+  onRecord,
+  recording,
+  recordProgress,
+  recordResIdx,
+  onChangeRecordResIdx,
+  recordFps,
+  onChangeRecordFps,
+  loopMode,
+  onChangeLoopMode,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
@@ -888,6 +914,116 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
                 </div>
               </>
             )}
+          </div>
+        </Section>
+      )}
+
+      {/* Record NFT Loop */}
+      {(!q || 'record nft loop'.includes(q)) && (
+        <Section title="Record Loop" count={1}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            {recording ? (
+              <>
+                <div style={{
+                  height: 4,
+                  borderRadius: 2,
+                  background: 'rgba(255,255,255,0.1)',
+                  overflow: 'hidden',
+                }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${recordProgress * 100}%`,
+                    background: 'linear-gradient(90deg, #a855f7, #3b82f6)',
+                    borderRadius: 2,
+                    transition: 'width 0.1s linear',
+                  }} />
+                </div>
+                <div style={{ fontSize: 10, color: 'rgba(168,85,247,0.8)', textAlign: 'center' }}>
+                  {recordProgress < 0.15 ? 'Warming up' : recordProgress < 0.5 ? 'Capturing' : recordProgress < 0.55 ? 'Building palette' : 'Encoding'}... {Math.round(recordProgress * 100)}%
+                </div>
+              </>
+            ) : (
+              <>
+                <select
+                  value={recordResIdx}
+                  onChange={(e) => onChangeRecordResIdx(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '5px 8px',
+                    fontSize: 11,
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 6,
+                    background: 'rgba(255,255,255,0.08)',
+                    color: '#fff',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                  }}
+                >
+                  {RECORD_RESOLUTIONS.map((res, i) => (
+                    <option key={i} value={i} style={{ background: '#1a1a2e' }}>
+                      {res.label}
+                    </option>
+                  ))}
+                </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'rgba(255,255,255,0.7)', width: '100%' }}>
+                  <span style={{ minWidth: 24 }}>FPS</span>
+                  <input
+                    type="range"
+                    min={10}
+                    max={30}
+                    step={5}
+                    value={recordFps}
+                    onChange={(e) => onChangeRecordFps(Number(e.target.value))}
+                    style={{ flex: 1, accentColor: '#a855f7' }}
+                  />
+                  <span style={{ width: 20, textAlign: 'right', fontSize: 10, fontFamily: 'monospace' }}>
+                    {recordFps}
+                  </span>
+                </label>
+                <div style={{ display: 'flex', gap: 4, width: '100%' }}>
+                  {(['loop', 'pingpong'] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => onChangeLoopMode(mode)}
+                      style={{
+                        ...chipBase,
+                        flex: 1,
+                        textAlign: 'center' as const,
+                        ...(loopMode === mode
+                          ? { background: 'rgba(168,85,247,0.3)', color: '#fff', borderColor: 'rgba(168,85,247,0.5)' }
+                          : {}),
+                      }}
+                    >
+                      {mode === 'loop' ? 'Loop' : 'Ping-Pong'}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[3, 5, 10].map((sec) => (
+                    <button
+                      key={sec}
+                      onClick={() => {
+                        const res = RECORD_RESOLUTIONS[recordResIdx];
+                        onRecord(sec, res.w, res.h, recordFps);
+                      }}
+                      style={{
+                        ...chipBase,
+                        flex: 1,
+                        textAlign: 'center' as const,
+                        background: 'linear-gradient(135deg, rgba(168,85,247,0.35), rgba(59,130,246,0.35))',
+                        color: '#fff',
+                        borderColor: 'rgba(168,85,247,0.5)',
+                      }}
+                    >
+                      {sec}s
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
+              Captures a ping-pong loop as .webm at the selected resolution.
+            </div>
           </div>
         </Section>
       )}

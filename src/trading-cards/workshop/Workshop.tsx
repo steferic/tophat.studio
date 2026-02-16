@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { GIFEncoder, quantize, applyPalette } from 'gifenc';
 import { STATUS_REGISTRY } from '../arena/statusRegistry';
 import { SYNTH_PRESETS } from '../audio/synthPresets';
 import { computeCardShake } from '../engines/cardShakeEngine';
@@ -11,7 +12,8 @@ import { getAllPresets, savePreset, deletePreset, exportPresetJSON } from './pre
 import { getAllEnvironmentConfigs } from '../environment/environmentStorage';
 import type { EnvironmentConfig } from '../environment/environmentTypes';
 import { WorkshopViewport } from './WorkshopViewport';
-import { WorkshopPanel } from './WorkshopPanel';
+import type { WorkshopViewportRef } from './WorkshopViewport';
+import { WorkshopPanel, RECORD_RESOLUTIONS } from './WorkshopPanel';
 import type { CameraPreset, ShakePattern, CameraMovementDescriptor, AttackParticleDescriptor } from '../arena/descriptorTypes';
 import type { HitReaction, StatusEffect } from '../arena/types';
 import type { WorkshopPreset } from './presetTypes';
@@ -74,6 +76,20 @@ export const Workshop: React.FC = () => {
 
   // Presets
   const [presets, setPresets] = useState<WorkshopPreset[]>(() => getAllPresets());
+
+  // Viewport ref + recording
+  const viewportRef = useRef<WorkshopViewportRef>(null);
+  const [recording, setRecording] = useState(false);
+  const [recordProgress, setRecordProgress] = useState(0);
+  const [recordResIdx, setRecordResIdx] = useState(0);
+  const [recordFps, setRecordFps] = useState(30);
+  const captureAspect = useMemo(
+    () => RECORD_RESOLUTIONS[recordResIdx].w / RECORD_RESOLUTIONS[recordResIdx].h,
+    [recordResIdx],
+  );
+  const [previewGif, setPreviewGif] = useState<{ url: string; filename: string } | null>(null);
+  const [recordingLoop, setRecordingLoop] = useState<{ duration: number } | null>(null);
+  const [loopMode, setLoopMode] = useState<'loop' | 'pingpong'>('loop');
 
   // Environment
   const [envConfigs, setEnvConfigs] = useState<EnvironmentConfig[]>(() => getAllEnvironmentConfigs());
@@ -443,6 +459,141 @@ export const Workshop: React.FC = () => {
     [],
   );
 
+  // ── NFT Recording (GIF loop) ───────────────────────────────
+
+  const handleRecord = useCallback(async (durationSec: number, width: number, height: number, fps: number) => {
+    const sourceCanvas = viewportRef.current?.getCanvas();
+    if (!sourceCanvas || recording) return;
+
+    setRecording(true);
+    setRecordProgress(0);
+    const isPingPong = loopMode === 'pingpong';
+
+    try {
+      const captureInterval = 1000 / fps;
+
+      // Offscreen canvas at target resolution
+      const offscreen = document.createElement('canvas');
+      offscreen.width = width;
+      offscreen.height = height;
+      const ctx = offscreen.getContext('2d')!;
+
+      // Center-crop source canvas to match target aspect ratio
+      const srcW = sourceCanvas.width;
+      const srcH = sourceCanvas.height;
+      const targetAspect = width / height;
+      const srcAspect = srcW / srcH;
+      let sx: number, sy: number, sw: number, sh: number;
+      if (srcAspect > targetAspect) {
+        sh = srcH;
+        sw = Math.round(srcH * targetAspect);
+        sx = Math.round((srcW - sw) / 2);
+        sy = 0;
+      } else {
+        sw = srcW;
+        sh = Math.round(srcW / targetAspect);
+        sx = 0;
+        sy = Math.round((srcH - sh) / 2);
+      }
+
+      // How many raw frames to capture
+      const totalOutputFrames = durationSec * fps;
+      const captureFrames = isPingPong
+        ? Math.ceil((totalOutputFrames + 2) / 2)
+        : totalOutputFrames;
+
+      // For true loop mode: activate clock override so time cycles
+      if (!isPingPong) {
+        setRecordingLoop({ duration: durationSec });
+
+        // Warm-up — one full cycle so particles reach steady state
+        await new Promise<void>((resolve) => {
+          const warmupMs = durationSec * 1000;
+          const start = performance.now();
+          const tick = () => {
+            const elapsed = performance.now() - start;
+            setRecordProgress(Math.min(elapsed / warmupMs, 1) * 0.15);
+            if (elapsed >= warmupMs) { resolve(); return; }
+            requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        });
+      }
+
+      // Capture frames via RAF
+      const progressBase = isPingPong ? 0 : 0.15;
+      const progressCapture = 0.35;
+      const frameDataList: ImageData[] = [];
+      await new Promise<void>((resolve) => {
+        let count = 0;
+        let lastCapture = 0;
+        const tick = (time: number) => {
+          if (count >= captureFrames) { resolve(); return; }
+          if (time - lastCapture >= captureInterval) {
+            ctx.drawImage(sourceCanvas, sx, sy, sw, sh, 0, 0, width, height);
+            frameDataList.push(ctx.getImageData(0, 0, width, height));
+            count++;
+            lastCapture = time;
+            setRecordProgress(progressBase + (count / captureFrames) * progressCapture);
+          }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+
+      // Deactivate clock override
+      setRecordingLoop(null);
+
+      // Assemble final frame sequence
+      const outputFrames = isPingPong
+        ? [...frameDataList, ...frameDataList.slice(1, -1).reverse()]
+        : frameDataList;
+
+      // Build global palette from sampled pixels
+      const paletteStart = progressBase + progressCapture;
+      setRecordProgress(paletteStart);
+      const PIXEL_STRIDE = 4;
+      const frameStep = Math.max(1, Math.floor(outputFrames.length / 8));
+      const palettePixels: number[] = [];
+      for (let f = 0; f < outputFrames.length; f += frameStep) {
+        const d = outputFrames[f].data;
+        for (let p = 0; p < d.length; p += PIXEL_STRIDE * 4) {
+          palettePixels.push(d[p], d[p + 1], d[p + 2], d[p + 3]);
+        }
+      }
+      const globalPalette = quantize(new Uint8ClampedArray(palettePixels), 256);
+
+      const encodeStart = paletteStart + 0.05;
+      setRecordProgress(encodeStart);
+
+      // Encode GIF
+      const delay = Math.round(1000 / fps);
+      const gif = GIFEncoder();
+      for (let i = 0; i < outputFrames.length; i++) {
+        const rgba = outputFrames[i].data;
+        const index = applyPalette(rgba, globalPalette);
+        gif.writeFrame(index, width, height, {
+          palette: globalPalette,
+          delay,
+          ...(i === 0 ? { repeat: 0 } : {}),
+        });
+        setRecordProgress(encodeStart + ((i + 1) / outputFrames.length) * (1 - encodeStart));
+        if (i % 5 === 0) await new Promise((r) => setTimeout(r, 0));
+      }
+      gif.finish();
+
+      // Show preview
+      const blob = new Blob([gif.bytes()], { type: 'image/gif' });
+      const url = URL.createObjectURL(blob);
+      const modeLabel = isPingPong ? 'pingpong' : 'loop';
+      setPreviewGif({ url, filename: `nft-${modeLabel}-${width}x${height}-${durationSec}s.gif` });
+    } finally {
+      setRecording(false);
+      setRecordProgress(0);
+      setRecordingLoop(null);
+    }
+  }, [recording, loopMode]);
+
   return (
     <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <WorkshopPanel
@@ -499,12 +650,22 @@ export const Workshop: React.FC = () => {
         onChangeModelPosition={handleChangeModelPosition}
         onChangeModelRotationY={setModelRotationY}
         onChangeModelScale={setModelScale}
+        onRecord={handleRecord}
+        recording={recording}
+        recordProgress={recordProgress}
+        recordResIdx={recordResIdx}
+        onChangeRecordResIdx={setRecordResIdx}
+        recordFps={recordFps}
+        onChangeRecordFps={setRecordFps}
+        loopMode={loopMode}
+        onChangeLoopMode={setLoopMode}
       />
 
       {/* Spacer for panel width */}
       <div style={{ width: 320, flexShrink: 0 }} />
 
       <WorkshopViewport
+        ref={viewportRef}
         definition={definition}
         activeFilters={activeFilters}
         filterParams={filterParams}
@@ -529,7 +690,92 @@ export const Workshop: React.FC = () => {
         modelPosition={modelPosition}
         modelRotationY={modelRotationY}
         modelScale={modelScale}
+        captureAspect={captureAspect}
+        recordingLoop={recordingLoop}
       />
+
+      {/* GIF Preview Overlay */}
+      {previewGif && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.8)',
+            backdropFilter: 'blur(8px)',
+          }}
+          onClick={() => { URL.revokeObjectURL(previewGif.url); setPreviewGif(null); }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 16,
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={previewGif.url}
+              alt="GIF preview"
+              style={{
+                maxWidth: '80vw',
+                maxHeight: '70vh',
+                borderRadius: 8,
+                border: '2px solid rgba(168,85,247,0.5)',
+                boxShadow: '0 0 40px rgba(168,85,247,0.2)',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={() => {
+                  const a = document.createElement('a');
+                  a.href = previewGif.url;
+                  a.download = previewGif.filename;
+                  a.click();
+                }}
+                style={{
+                  padding: '8px 24px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: 'none',
+                  borderRadius: 8,
+                  background: 'linear-gradient(135deg, #a855f7, #3b82f6)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Download
+              </button>
+              <button
+                onClick={() => { URL.revokeObjectURL(previewGif.url); setPreviewGif(null); }}
+                style={{
+                  padding: '8px 24px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 8,
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.8)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+              {previewGif.filename}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
