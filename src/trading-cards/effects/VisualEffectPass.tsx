@@ -47,6 +47,7 @@ import {
   RippleEffect,
 } from './customEffects';
 import { MaskedEffect } from './MaskedEffect';
+import { TrailFeedbackEffect } from './TrailFeedbackEffect';
 import type { MaskConfig } from '../workshop/maskRegistry';
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -320,6 +321,9 @@ interface VisualEffectPassProps {
   filters: string[];
   allParams: Record<string, Record<string, any>>;
   maskConfig?: MaskConfig;
+  trailEffect?: boolean;
+  trailDecay?: number;
+  bgColor?: string;
 }
 
 // ── Pattern ID → int mapping ─────────────────────────────────
@@ -335,7 +339,9 @@ const MASK_PATTERN_INDEX: Record<string, number> = {
   'diagonal-stripes': 7,
 };
 
-export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, allParams, maskConfig }) => {
+export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({
+  filters, allParams, maskConfig, trailEffect = false, trailDecay = 0.08, bgColor = '#000000',
+}) => {
   const customEffects = useCustomEffects(filters, allParams);
   const loopDuration = useLoopDuration();
   const gl = useThree((s) => s.gl);
@@ -345,6 +351,13 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, all
     () => (maskConfig?.enabled ? new MaskedEffect() : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [maskConfig?.enabled],
+  );
+
+  // Create TrailFeedbackEffect instance (stable unless toggled)
+  const trailFeedback = useMemo(
+    () => (trailEffect ? new TrailFeedbackEffect({ decay: trailDecay, bgColor }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [trailEffect],
   );
 
   // Keep a ref to the latest maskConfig so useFrame always sees current values
@@ -406,6 +419,12 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, all
       u.get('uB_tintColor')!.value = hexToRgb01(b.tintColor);
       u.get('uB_tintAmount')!.value = b.tintAmount;
     }
+
+    // Update trail feedback params each frame
+    if (trailFeedback) {
+      trailFeedback.setDecay(trailDecay);
+      trailFeedback.setBgColor(bgColor);
+    }
   });
 
   const elements: React.ReactNode[] = [];
@@ -426,9 +445,14 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({ filters, all
     }
   }
 
-  // Append masked effect last (applies after all global effects)
+  // Append masked effect after all global effects
   if (maskedEffect) {
     elements.push(<primitive key="masked-effect" object={maskedEffect} />);
+  }
+
+  // Append trail feedback as the very last effect (accumulates all previous effects)
+  if (trailFeedback) {
+    elements.push(<primitive key="trail-feedback" object={trailFeedback} />);
   }
 
   if (elements.length === 0) return null;

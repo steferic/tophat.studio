@@ -245,8 +245,12 @@ export interface WorkshopPanelProps {
   onChangeRecordFps: (fps: number) => void;
   loopMode: 'loop' | 'pingpong';
   onChangeLoopMode: (mode: 'loop' | 'pingpong') => void;
+  loopSync: boolean;
+  onChangeLoopSync: (sync: boolean) => void;
   trailEffect: boolean;
   onChangeTrailEffect: (enabled: boolean) => void;
+  trailDecay: number;
+  onChangeTrailDecay: (decay: number) => void;
 }
 
 export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
@@ -323,8 +327,12 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
   onChangeRecordFps,
   loopMode,
   onChangeLoopMode,
+  loopSync,
+  onChangeLoopSync,
   trailEffect,
   onChangeTrailEffect,
+  trailDecay,
+  onChangeTrailDecay,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
@@ -1093,7 +1101,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
                   }} />
                 </div>
                 <div style={{ fontSize: 10, color: 'rgba(168,85,247,0.8)', textAlign: 'center' }}>
-                  {recordProgress < 0.15 ? 'Warming up' : recordProgress < 0.5 ? 'Capturing' : recordProgress < 0.55 ? 'Building palette' : 'Encoding'}... {Math.round(recordProgress * 100)}%
+                  {recordProgress < 0.15 ? 'Warming up' : recordProgress < 0.5 ? 'Capturing' : 'Encoding'}... {Math.round(recordProgress * 100)}%
                 </div>
               </>
             ) : (
@@ -1153,11 +1161,42 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
                   ))}
                 </div>
                 <button
+                  onClick={() => onChangeLoopSync(!loopSync)}
+                  style={loopSync ? chipOn : chipOff}
+                  title={loopSync
+                    ? 'Animations quantized to loop seamlessly (slow animations may freeze)'
+                    : 'Animations run at original speed (may not loop seamlessly)'}
+                >
+                  Loop Sync
+                </button>
+                <button
                   onClick={() => onChangeTrailEffect(!trailEffect)}
                   style={trailEffect ? chipOn : chipOff}
                 >
                   Trail Effect
                 </button>
+                {trailEffect && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', width: 40 }}>Fade</span>
+                      <input
+                        type="range"
+                        min={0.01}
+                        max={0.5}
+                        step={0.01}
+                        value={trailDecay}
+                        onChange={(e) => onChangeTrailDecay(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: '#a855f7' }}
+                      />
+                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', width: 30, textAlign: 'right' }}>
+                        {trailDecay.toFixed(2)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', lineHeight: 1.3 }}>
+                      Lower = longer trails, higher = faster fade
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 6 }}>
                   {[3, 5, 10].map((sec) => (
                     <button
@@ -1182,7 +1221,7 @@ export const WorkshopPanel: React.FC<WorkshopPanelProps> = ({
               </>
             )}
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>
-              Captures a ping-pong loop as .webm at the selected resolution.
+              Records a seamless loop as .webm (VP9) at the selected resolution.
             </div>
           </div>
         </Section>

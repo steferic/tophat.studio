@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { GIFEncoder, quantize, applyPalette } from 'gifenc';
+import { Muxer, ArrayBufferTarget } from 'webm-muxer';
 import { STATUS_REGISTRY } from '../arena/statusRegistry';
 import { SYNTH_PRESETS } from '../audio/synthPresets';
 import { computeCardShake } from '../engines/cardShakeEngine';
@@ -104,7 +104,9 @@ export const Workshop: React.FC = () => {
   const [previewGif, setPreviewGif] = useState<{ url: string; filename: string } | null>(null);
   const [recordingLoop, setRecordingLoop] = useState<{ duration: number } | null>(null);
   const [loopMode, setLoopMode] = useState<'loop' | 'pingpong'>('loop');
+  const [loopSync, setLoopSync] = useState(true);
   const [trailEffect, setTrailEffect] = useState(false);
+  const [trailDecay, setTrailDecay] = useState(0.08);
 
   // Environment
   const [envConfigs, setEnvConfigs] = useState<EnvironmentConfig[]>(() => getAllEnvironmentConfigs());
@@ -153,14 +155,10 @@ export const Workshop: React.FC = () => {
 
   const handleSelectModel = useCallback((modelId: string) => {
     setSelectedModelId(modelId);
+    // Only reset transient / model-specific state.
+    // Visual preset state (filters, morphs, auras, shields, dancing, evolved,
+    // glow, params) is preserved so loaded presets survive model changes.
     setActiveStatuses([]);
-    setActiveFilters([]);
-    setActiveMorphs([]);
-    setActiveAuras([]);
-    setActiveShields([]);
-    setIsDancing(false);
-    setIsEvolving(false);
-    setIsEvolved(false);
     // Reset decomposition
     cancelAnimationFrame(decompositionRaf.current);
     setActiveDecomposition(null);
@@ -170,6 +168,8 @@ export const Workshop: React.FC = () => {
     setAttackMode(null);
     setActiveAttackKey(null);
     setAttackElapsed(0);
+    // Reset evolving animation (but keep isEvolved if already set)
+    setIsEvolving(false);
   }, []);
 
   const handleToggleFilter = useCallback((filter: string) => {
@@ -531,14 +531,48 @@ export const Workshop: React.FC = () => {
     setRecordProgress(0);
     const isPingPong = loopMode === 'pingpong';
 
+    // Boost DPR so the canvas backing buffer >= recording resolution
+    const restoreDpr = viewportRef.current?.setCaptureDpr(width, height);
+
     try {
+      // How many raw frames to capture
+      const totalOutputFrames = durationSec * fps;
+      // For loop mode: capture extra overlap frames for cross-dissolve
+      const BLEND_SEC = 1.0;
+      const blendFrames = isPingPong ? 0 : Math.ceil(fps * BLEND_SEC);
+      const captureFrames = isPingPong
+        ? Math.ceil((totalOutputFrames + 2) / 2)
+        : totalOutputFrames + blendFrames;
+
+      // Activate clock override (loopDuration drives qf() frequency quantization).
+      // When loopSync is off, we still use the recording clock for deterministic
+      // frame capture, but don't pass loopDuration to qf() so animations run at
+      // their original speeds without quantization.
+      setRecordingLoop({ duration: durationSec });
+
+      // Warm-up — one full cycle in real-time so particles reach steady state.
+      // This also gives R3F time to propagate the DPR boost.
+      recordingTimeRef.current = null; // real-time mode for warmup
+      await new Promise<void>((resolve) => {
+        const warmupMs = durationSec * 1000;
+        const start = performance.now();
+        const tick = () => {
+          const elapsed = performance.now() - start;
+          setRecordProgress(Math.min(elapsed / warmupMs, 1) * 0.15);
+          if (elapsed >= warmupMs) { resolve(); return; }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+
       // Offscreen canvas at target resolution
       const offscreen = document.createElement('canvas');
       offscreen.width = width;
       offscreen.height = height;
       const ctx = offscreen.getContext('2d')!;
 
-      // Center-crop source canvas to match target aspect ratio
+      // Center-crop source canvas to match target aspect ratio.
+      // Read dimensions AFTER warmup so the DPR boost has taken effect.
       const srcW = sourceCanvas.width;
       const srcH = sourceCanvas.height;
       const targetAspect = width / height;
@@ -555,32 +589,6 @@ export const Workshop: React.FC = () => {
         sx = 0;
         sy = Math.round((srcH - sh) / 2);
       }
-
-      // How many raw frames to capture
-      const totalOutputFrames = durationSec * fps;
-      // For loop mode: capture extra overlap frames for cross-dissolve
-      const BLEND_SEC = 1.0;
-      const blendFrames = isPingPong ? 0 : Math.ceil(fps * BLEND_SEC);
-      const captureFrames = isPingPong
-        ? Math.ceil((totalOutputFrames + 2) / 2)
-        : totalOutputFrames + blendFrames;
-
-      // Activate clock override (loopDuration drives qf() frequency quantization)
-      setRecordingLoop({ duration: durationSec });
-
-      // Warm-up — one full cycle in real-time so particles reach steady state
-      recordingTimeRef.current = null; // real-time mode for warmup
-      await new Promise<void>((resolve) => {
-        const warmupMs = durationSec * 1000;
-        const start = performance.now();
-        const tick = () => {
-          const elapsed = performance.now() - start;
-          setRecordProgress(Math.min(elapsed / warmupMs, 1) * 0.15);
-          if (elapsed >= warmupMs) { resolve(); return; }
-          requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
 
       // Deterministic capture: set exact time per frame, wait for render, capture
       // Time advances linearly at 1/fps per frame (may exceed durationSec for overlap)
@@ -625,45 +633,56 @@ export const Workshop: React.FC = () => {
         }
       }
 
-      // Build global palette from sampled pixels
-      const paletteStart = progressBase + progressCapture;
-      setRecordProgress(paletteStart);
-      const PIXEL_STRIDE = 4;
-      const frameStep = Math.max(1, Math.floor(outputFrames.length / 8));
-      const palettePixels: number[] = [];
-      for (let f = 0; f < outputFrames.length; f += frameStep) {
-        const d = outputFrames[f].data;
-        for (let p = 0; p < d.length; p += PIXEL_STRIDE * 4) {
-          palettePixels.push(d[p], d[p + 1], d[p + 2], d[p + 3]);
-        }
-      }
-      const globalPalette = quantize(new Uint8ClampedArray(palettePixels), 256);
-
-      const encodeStart = paletteStart + 0.05;
+      // Encode WebM via WebCodecs + webm-muxer (VP9, full color, hardware-accelerated)
+      const encodeStart = progressBase + progressCapture;
       setRecordProgress(encodeStart);
 
-      // Encode GIF
-      const delay = Math.round(1000 / fps);
-      const gif = GIFEncoder();
+      const target = new ArrayBufferTarget();
+      const muxer = new Muxer({
+        target,
+        video: { codec: 'V_VP9', width, height, frameRate: fps },
+      });
+
+      const encoder = new VideoEncoder({
+        output: (chunk, meta) => muxer.addVideoChunk(chunk, meta),
+        error: (e) => console.error('VideoEncoder error:', e),
+      });
+
+      encoder.configure({
+        codec: 'vp09.00.10.08',
+        width,
+        height,
+        bitrate: 20_000_000,
+        bitrateMode: 'variable',
+        latencyMode: 'quality',
+      });
+
+      const frameDurationUs = Math.round(1_000_000 / fps);
       for (let i = 0; i < outputFrames.length; i++) {
-        const rgba = outputFrames[i].data;
-        const index = applyPalette(rgba, globalPalette);
-        gif.writeFrame(index, width, height, {
-          palette: globalPalette,
-          delay,
-          ...(i === 0 ? { repeat: 0 } : {}),
+        const frame = new VideoFrame(outputFrames[i].data, {
+          format: 'RGBA',
+          codedWidth: width,
+          codedHeight: height,
+          timestamp: i * frameDurationUs,
+          duration: frameDurationUs,
         });
+        encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 });
+        frame.close();
         setRecordProgress(encodeStart + ((i + 1) / outputFrames.length) * (1 - encodeStart));
-        if (i % 5 === 0) await new Promise((r) => setTimeout(r, 0));
+        if (i % 10 === 0) await new Promise((r) => setTimeout(r, 0));
       }
-      gif.finish();
+
+      await encoder.flush();
+      encoder.close();
+      muxer.finalize();
 
       // Show preview
-      const blob = new Blob([gif.bytes()], { type: 'image/gif' });
+      const blob = new Blob([target.buffer], { type: 'video/webm' });
       const url = URL.createObjectURL(blob);
       const modeLabel = isPingPong ? 'pingpong' : 'loop';
-      setPreviewGif({ url, filename: `nft-${modeLabel}-${width}x${height}-${durationSec}s.gif` });
+      setPreviewGif({ url, filename: `nft-${modeLabel}-${width}x${height}-${durationSec}s.webm` });
     } finally {
+      restoreDpr?.();
       setRecording(false);
       setRecordProgress(0);
       setRecordingLoop(null);
@@ -746,8 +765,12 @@ export const Workshop: React.FC = () => {
         onChangeRecordFps={setRecordFps}
         loopMode={loopMode}
         onChangeLoopMode={setLoopMode}
+        loopSync={loopSync}
+        onChangeLoopSync={setLoopSync}
         trailEffect={trailEffect}
         onChangeTrailEffect={setTrailEffect}
+        trailDecay={trailDecay}
+        onChangeTrailDecay={setTrailDecay}
       />
 
       {/* Spacer for panel width */}
@@ -785,10 +808,13 @@ export const Workshop: React.FC = () => {
         bgColor={bgColor}
         captureAspect={captureAspect}
         recordingLoop={recordingLoop}
+        loopSync={loopSync}
         recordingTimeRef={recordingTimeRef}
+        trailEffect={trailEffect}
+        trailDecay={trailDecay}
       />
 
-      {/* GIF Preview Overlay */}
+      {/* Video Preview Overlay */}
       {previewGif && (
         <div
           style={{
@@ -814,9 +840,12 @@ export const Workshop: React.FC = () => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <img
+            <video
               src={previewGif.url}
-              alt="GIF preview"
+              autoPlay
+              loop
+              muted
+              playsInline
               style={{
                 maxWidth: '80vw',
                 maxHeight: '70vh',

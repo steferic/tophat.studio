@@ -83,6 +83,13 @@ export const ITEM_REGISTRY: Record<string, ItemDescriptor> = {
     scale: 0.5,
     defaultMovement: 'hover',
   },
+  angel: {
+    id: 'angel',
+    name: 'Angel',
+    modelPath: '/models/angel.glb',
+    scale: 0.5,
+    defaultMovement: 'hover',
+  },
 };
 
 export function getItemDescriptor(id: string): ItemDescriptor {

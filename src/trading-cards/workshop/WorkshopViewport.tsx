@@ -1,6 +1,7 @@
-import React, { useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import React, { useRef, useState, useEffect, useMemo, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 import { CameraAnimator } from '../effects/CameraAnimator';
 import { VisualEffectPass } from '../effects/VisualEffectPass';
 import { ModelScene } from '../effects/ModelScene';
@@ -88,6 +89,51 @@ const RecordingClock: React.FC<{
   return null;
 };
 
+// ── Trail Fade ──────────────────────────────────────────────
+// Prevents framebuffer clear, renders a semi-transparent background quad each
+// frame so previous content fades out gradually → motion trail effect.
+
+const TrailFade: React.FC<{ enabled: boolean; bgColor: string; decay: number }> = ({ enabled, bgColor, decay }) => {
+  const { gl } = useThree();
+
+  const { fadeScene, fadeMat } = useMemo(() => {
+    const scene = new THREE.Scene();
+    const geo = new THREE.PlaneGeometry(2, 2);
+    const mat = new THREE.MeshBasicMaterial({
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    scene.add(new THREE.Mesh(geo, mat));
+    return { fadeScene: scene, fadeMat: mat };
+  }, []);
+
+  const fadeCam = useMemo(() => new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1), []);
+
+  // Sync color/opacity
+  useEffect(() => {
+    fadeMat.color.set(bgColor);
+    fadeMat.opacity = decay;
+  }, [bgColor, decay, fadeMat]);
+
+  // Restore autoClear on unmount
+  useEffect(() => {
+    return () => { gl.autoClear = true; };
+  }, [gl]);
+
+  useFrame(() => {
+    // Enforce autoClear every frame — other components (EffectComposer) may reset it
+    gl.autoClear = !enabled;
+    if (!enabled) return;
+    // Blend fade quad onto previous framebuffer content
+    gl.render(fadeScene, fadeCam);
+    // Clear depth only so the main scene renders with correct z-testing
+    gl.clear(false, true, false);
+  }, -500); // After RecordingClock (-1000), before everything else
+
+  return null;
+};
+
 // ── FPS Meter ───────────────────────────────────────────────
 
 const FpsMeter: React.FC = () => {
@@ -141,6 +187,12 @@ const FpsMeter: React.FC = () => {
 
 export interface WorkshopViewportRef {
   getCanvas: () => HTMLCanvasElement | null;
+  /**
+   * Temporarily boost the Canvas DPR so the backing buffer is large enough
+   * for recording at the given resolution. Returns a restore function.
+   * Must wait a couple of rAFs after calling for R3F to propagate the change.
+   */
+  setCaptureDpr: (targetW: number, targetH: number) => (() => void) | null;
 }
 
 export interface WorkshopViewportProps {
@@ -184,7 +236,12 @@ export interface WorkshopViewportProps {
   captureAspect?: number;
   // Recording clock override
   recordingLoop?: { duration: number } | null;
+  /** When false, qf() loop quantization is disabled during recording */
+  loopSync?: boolean;
   recordingTimeRef?: React.MutableRefObject<number | null>;
+  // Trail effect (live preview)
+  trailEffect?: boolean;
+  trailDecay?: number;
 }
 
 export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewportProps>(({
@@ -218,14 +275,43 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
   modelScale: envModelScale = 1,
   captureAspect,
   recordingLoop = null,
+  loopSync = true,
   recordingTimeRef,
+  trailEffect = false,
+  trailDecay = 0.08,
 }, ref) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  const [overrideDpr, setOverrideDpr] = useState<number | null>(null);
 
   useImperativeHandle(ref, () => ({
     getCanvas: () => containerRef.current?.querySelector('canvas') ?? null,
+    setCaptureDpr: (targetW: number, targetH: number) => {
+      const el = containerRef.current;
+      if (!el) return null;
+      const cssW = el.clientWidth;
+      const cssH = el.clientHeight;
+      const baseDpr = window.devicePixelRatio || 1;
+
+      // Current canvas pixel dimensions
+      const canvasW = cssW * baseDpr;
+      const canvasH = cssH * baseDpr;
+
+      // Compute how large the center-crop region is at current DPR
+      const targetAspect = targetW / targetH;
+      const canvasAspect = canvasW / canvasH;
+      const cropW = canvasAspect > targetAspect ? canvasH * targetAspect : canvasW;
+      const cropH = canvasAspect > targetAspect ? canvasH : canvasW / targetAspect;
+
+      // Scale factor so the crop region >= target resolution
+      const scale = Math.max(targetW / cropW, targetH / cropH, 1);
+      if (scale <= 1) return null; // already large enough
+
+      const captureDpr = Math.ceil(baseDpr * scale * 10) / 10; // round up to 0.1
+      setOverrideDpr(captureDpr);
+      return () => setOverrideDpr(null);
+    },
   }));
 
   // Track container dimensions for capture preview overlay
@@ -271,8 +357,12 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
         ...containerStyle,
       }}
     >
-      <Canvas gl={{ preserveDrawingBuffer: true, antialias: true }}>
-        <LoopProvider value={recordingLoop?.duration ?? null}>
+      <Canvas gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={overrideDpr ?? [1, 2]}>
+        <LoopProvider value={loopSync ? (recordingLoop?.duration ?? null) : null}>
+        {/* Standalone TrailFade is only used when VisualEffectPass is NOT mounted.
+            When VisualEffectPass is active (any filters, mask, OR trail), the
+            TrailFeedbackEffect inside EffectComposer handles trail accumulation. */}
+        <TrailFade enabled={false} bgColor={bgColor || '#000000'} decay={trailDecay} />
         <PerspectiveCamera makeDefault position={defaultPos} />
         <ambientLight intensity={Math.PI / 2} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} />
@@ -335,8 +425,18 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
         </group>
         {(() => {
           const effectFilters = activeFilters.filter((f) => f !== 'blue-tint');
-          if (effectFilters.length === 0 && !maskConfig?.enabled) return null;
-          return <VisualEffectPass filters={effectFilters} allParams={filterParams} maskConfig={maskConfig} />;
+          const needsComposer = effectFilters.length > 0 || !!maskConfig?.enabled || trailEffect;
+          if (!needsComposer) return null;
+          return (
+            <VisualEffectPass
+              filters={effectFilters}
+              allParams={filterParams}
+              maskConfig={maskConfig}
+              trailEffect={trailEffect}
+              trailDecay={trailDecay}
+              bgColor={bgColor || '#000000'}
+            />
+          );
         })()}
         </LoopProvider>
       </Canvas>
