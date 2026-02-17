@@ -102,6 +102,20 @@ export interface GodRaysSettings {
   speed: number;
 }
 
+// ── Fog ─────────────────────────────────────────────────────
+
+export interface FogSettings {
+  enabled: boolean;
+  color: string;
+  density: number;
+  height: number;
+  heightFalloff: number;
+  windSpeed: number;
+  turbulence: number;
+  opacity: number;
+  scale: number;
+}
+
 // ── Config ───────────────────────────────────────────────────
 
 export interface EnvironmentConfig {
@@ -120,6 +134,7 @@ export interface EnvironmentConfig {
   weather: WeatherSettings;
   clouds: CloudSettings;
   godRays: GodRaysSettings;
+  fog: FogSettings;
 }
 
 export const DEFAULT_BOX_SIZE = 156.25;
@@ -188,6 +203,18 @@ export const DEFAULT_GOD_RAYS: GodRaysSettings = {
   opacity: 0.15,
   originY: 70,
   speed: 1.0,
+};
+
+export const DEFAULT_FOG: FogSettings = {
+  enabled: false,
+  color: '#b0c4d8',
+  density: 0.4,
+  height: 25,
+  heightFalloff: 0.06,
+  windSpeed: 1.0,
+  turbulence: 0.5,
+  opacity: 0.8,
+  scale: 1.0,
 };
 
 export function createPlacedModel(modelId: string): PlacedModel {

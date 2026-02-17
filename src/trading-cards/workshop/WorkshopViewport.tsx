@@ -11,13 +11,20 @@ import type { HitReaction, StatusEffect } from '../arena/types';
 import type { MaskConfig } from '../workshop/maskRegistry';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import type { EnvironmentConfig } from '../environment/environmentTypes';
+import type { CameraAutomationState } from './hooks/useCameraAutomation';
+import { CameraAutomations } from './CameraAutomations';
 import { EnvironmentSky } from '../environment/EnvironmentSky';
 import { EnvironmentTerrain } from '../environment/EnvironmentTerrain';
 import { EnvironmentWater } from '../environment/EnvironmentWater';
 import { EnvironmentWeather } from '../environment/EnvironmentWeather';
 import { EnvironmentGodRays } from '../environment/EnvironmentGodRays';
+import { EnvironmentFog } from '../environment/EnvironmentFog';
 import { EnvironmentClouds } from '../environment/EnvironmentClouds';
+import { AuroraBorealis } from '../effects/sceneFx';
+import { BackgroundPattern } from '../effects/BackgroundPattern';
+import type { BgPatternConfig } from './backgroundPatternRegistry';
 import { LoopProvider } from './loopContext';
+import { CSS_OVERLAY_FILTERS } from './constants';
 
 // ── Saved Camera Persistence ────────────────────────────────
 
@@ -58,6 +65,15 @@ const CameraManager: React.FC<{
   return null;
 };
 
+// ── GL Ref Capture ──────────────────────────────────────────
+// Captures the WebGL renderer reference from inside the R3F Canvas.
+
+const GlCapture: React.FC<{ glRef: React.MutableRefObject<THREE.WebGLRenderer | null> }> = ({ glRef: ref }) => {
+  const gl = useThree((s) => s.gl);
+  ref.current = gl;
+  return null;
+};
+
 // ── Recording Clock Override ────────────────────────────────
 // Overrides the R3F clock so elapsed time cycles modularly.
 // All useFrame-based animations see looped time → perfect seamless loop.
@@ -67,6 +83,17 @@ const RecordingClock: React.FC<{
   timeRef?: React.MutableRefObject<number | null>;
 }> = ({ loopDuration, timeRef }) => {
   const startRef = useRef(-1);
+  const clock = useThree((s) => s.clock);
+
+  // Remove instance-level getElapsedTime override on unmount so the
+  // THREE.Clock prototype method resumes and animations keep running.
+  useEffect(() => {
+    return () => {
+      if (Object.prototype.hasOwnProperty.call(clock, 'getElapsedTime')) {
+        delete (clock as any).getElapsedTime;
+      }
+    };
+  }, [clock]);
 
   useFrame((state) => {
     let loopedTime: number;
@@ -193,6 +220,8 @@ export interface WorkshopViewportRef {
    * Must wait a couple of rAFs after calling for R3F to propagate the change.
    */
   setCaptureDpr: (targetW: number, targetH: number) => (() => void) | null;
+  /** Set the WebGL renderer clear alpha (0 = transparent, 1 = opaque). */
+  setClearAlpha: (alpha: number) => void;
 }
 
 export interface WorkshopViewportProps {
@@ -223,10 +252,15 @@ export interface WorkshopViewportProps {
   // Shields
   activeShields?: string[];
   shieldParams?: Record<string, Record<string, any>>;
+  // Scene FX
+  activeSceneFx?: string[];
+  sceneFxParams?: Record<string, Record<string, any>>;
   // Masked effects
   maskConfig?: MaskConfig;
   // Background color
   bgColor?: string;
+  // Background pattern
+  bgPattern?: BgPatternConfig;
   // Environment backdrop
   envConfig?: EnvironmentConfig | null;
   modelPosition?: [number, number, number];
@@ -242,6 +276,8 @@ export interface WorkshopViewportProps {
   // Trail effect (live preview)
   trailEffect?: boolean;
   trailDecay?: number;
+  // Camera automation
+  cameraAutomation?: CameraAutomationState;
 }
 
 export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewportProps>(({
@@ -267,8 +303,11 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
   auraParams = {},
   activeShields = [],
   shieldParams = {},
+  activeSceneFx = [],
+  sceneFxParams = {},
   maskConfig,
   bgColor,
+  bgPattern,
   envConfig = null,
   modelPosition: envModelPos,
   modelRotationY: envModelRotY = 0,
@@ -279,9 +318,11 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
   recordingTimeRef,
   trailEffect = false,
   trailDecay = 0.08,
+  cameraAutomation,
 }, ref) => {
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const glRef = useRef<THREE.WebGLRenderer | null>(null);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const [overrideDpr, setOverrideDpr] = useState<number | null>(null);
 
@@ -311,6 +352,9 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
       const captureDpr = Math.ceil(baseDpr * scale * 10) / 10; // round up to 0.1
       setOverrideDpr(captureDpr);
       return () => setOverrideDpr(null);
+    },
+    setClearAlpha: (alpha: number) => {
+      glRef.current?.setClearAlpha(alpha);
     },
   }));
 
@@ -351,24 +395,37 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
       ref={containerRef}
       style={{
         flex: 1,
-        height: '100vh',
+        height: '100%',
         position: 'relative',
         background: bgColor || '#000000',
         ...containerStyle,
       }}
     >
       <Canvas gl={{ preserveDrawingBuffer: true, antialias: true }} dpr={overrideDpr ?? [1, 2]}>
+        <GlCapture glRef={glRef} />
         <LoopProvider value={loopSync ? (recordingLoop?.duration ?? null) : null}>
         {/* Standalone TrailFade is only used when VisualEffectPass is NOT mounted.
             When VisualEffectPass is active (any filters, mask, OR trail), the
             TrailFeedbackEffect inside EffectComposer handles trail accumulation. */}
         <TrailFade enabled={false} bgColor={bgColor || '#000000'} decay={trailDecay} />
+        {bgPattern && <BackgroundPattern config={bgPattern} />}
         <PerspectiveCamera makeDefault position={defaultPos} />
         <ambientLight intensity={Math.PI / 2} />
         <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} decay={0} intensity={Math.PI} />
         <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
-        <OrbitControls ref={controlsRef} enablePan enableZoom enableRotate zoomToCursor />
+        <OrbitControls
+          ref={controlsRef}
+          enablePan
+          enableZoom
+          enableRotate
+          zoomToCursor
+          autoRotate={!!cameraAutomation?.orbit.enabled}
+          autoRotateSpeed={cameraAutomation?.orbit.enabled ? cameraAutomation.orbit.speed * 2 : 0}
+        />
         <CameraManager controlsRef={controlsRef} savedCamera={savedCamera} />
+        {cameraAutomation && (
+          <CameraAutomations automation={cameraAutomation} controlsRef={controlsRef} />
+        )}
         {recordingLoop && <RecordingClock loopDuration={recordingLoop.duration} timeRef={recordingTimeRef} />}
         <CameraAnimator
           descriptor={attackCameraMovement}
@@ -386,7 +443,13 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
             <EnvironmentWater settings={envConfig.water} boxSize={envConfig.boxSize} />
             <EnvironmentGodRays settings={envConfig.godRays} boxSize={envConfig.boxSize} />
             <EnvironmentWeather settings={envConfig.weather} boxSize={envConfig.boxSize} boxHeight={envConfig.boxHeight} />
+            <EnvironmentFog settings={envConfig.fog} />
           </>
+        )}
+
+        {/* Aurora Borealis (world-space scene FX) */}
+        {activeSceneFx.includes('aurora') && (
+          <AuroraBorealis params={sceneFxParams['aurora'] ?? {}} />
         )}
 
         <group
@@ -411,6 +474,8 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
               auraParams={auraParams}
               activeShields={activeShields}
               shieldParams={shieldParams}
+              activeSceneFx={activeSceneFx}
+              sceneFxParams={sceneFxParams}
             />
           </group>
           {activeDecomposition && (
@@ -424,7 +489,7 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
           )}
         </group>
         {(() => {
-          const effectFilters = activeFilters.filter((f) => f !== 'blue-tint');
+          const effectFilters = activeFilters.filter((f) => !(f in CSS_OVERLAY_FILTERS));
           const needsComposer = effectFilters.length > 0 || !!maskConfig?.enabled || trailEffect;
           if (!needsComposer) return null;
           return (
@@ -478,18 +543,21 @@ export const WorkshopViewport = forwardRef<WorkshopViewportRef, WorkshopViewport
         );
       })()}
 
-      {/* Blue tint overlay */}
-      {activeFilters.includes('blue-tint') && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(0,80,200,0.25)',
-            pointerEvents: 'none',
-            zIndex: 1,
-          }}
-        />
-      )}
+      {/* CSS overlay filters (e.g. blue-tint) */}
+      {activeFilters
+        .filter((f) => f in CSS_OVERLAY_FILTERS)
+        .map((f) => (
+          <div
+            key={f}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              pointerEvents: 'none',
+              zIndex: 1,
+              ...CSS_OVERLAY_FILTERS[f],
+            }}
+          />
+        ))}
 
       {/* Save / Reset camera */}
       <div

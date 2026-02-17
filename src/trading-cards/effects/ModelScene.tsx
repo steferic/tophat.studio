@@ -9,6 +9,7 @@ import { MorphEffect, createMorphUniforms, injectMorphVertexShader, updateMorphU
 import type { MorphUniforms } from './MorphEffect';
 import { AuraEffect } from './AuraEffect';
 import { ShieldEffect } from './ShieldEffect';
+import { MagicCircle, Portal, LightningArcs, LavaPool, FluidVortex, LiquidOrbs, PlasmaField } from './sceneFx';
 import { LightDispatcher } from './lights/LightDispatcher';
 import { ParticleDispatcher } from './particles/ParticleDispatcher';
 import { useModelBounds } from './useModelBounds';
@@ -150,6 +151,9 @@ interface ModelSceneProps {
   /** Shield effects */
   activeShields?: string[];
   shieldParams?: Record<string, Record<string, any>>;
+  /** Scene FX (model-attached) */
+  activeSceneFx?: string[];
+  sceneFxParams?: Record<string, Record<string, any>>;
 }
 
 /**
@@ -176,6 +180,8 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
   auraParams = {},
   activeShields = [],
   shieldParams = {},
+  activeSceneFx = [],
+  sceneFxParams = {},
 }) => {
   const { model, attackEffects } = definition;
   const ModelComponent = model.ModelComponent;
@@ -251,6 +257,20 @@ export const ModelScene: React.FC<ModelSceneProps> = ({
         {activeShields.map((id) => (
           <ShieldEffect key={id} shieldId={id} shieldParams={shieldParams[id] ?? {}} modelScale={model.baseScale} />
         ))}
+        {/* Model-attached scene FX */}
+        {activeSceneFx.map((id) => {
+          const p = sceneFxParams[id] ?? {};
+          switch (id) {
+            case 'magic-circle': return <MagicCircle key={id} params={p} />;
+            case 'portal': return <Portal key={id} params={p} />;
+            case 'lightning': return <LightningArcs key={id} params={p} />;
+            case 'lava-pool': return <LavaPool key={id} params={p} />;
+            case 'fluid-vortex': return <FluidVortex key={id} params={p} />;
+            case 'liquid-orbs': return <LiquidOrbs key={id} params={p} />;
+            case 'plasma-field': return <PlasmaField key={id} params={p} />;
+            default: return null;
+          }
+        })}
         {isEvolved && definition.evolvedEffects && (
           <>
             <pointLight

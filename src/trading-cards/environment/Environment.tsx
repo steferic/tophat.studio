@@ -19,6 +19,7 @@ import type {
   WeatherSettings,
   CloudSettings,
   GodRaysSettings,
+  FogSettings,
   EnvironmentConfig,
 } from './environmentTypes';
 import {
@@ -32,6 +33,7 @@ import {
   DEFAULT_WEATHER,
   DEFAULT_CLOUDS,
   DEFAULT_GOD_RAYS,
+  DEFAULT_FOG,
   createPlacedModel,
 } from './environmentTypes';
 
@@ -48,6 +50,7 @@ export const Environment: React.FC = () => {
   const [weather, setWeather] = useState<WeatherSettings>({ ...DEFAULT_WEATHER });
   const [clouds, setClouds] = useState<CloudSettings>({ ...DEFAULT_CLOUDS });
   const [godRays, setGodRays] = useState<GodRaysSettings>({ ...DEFAULT_GOD_RAYS });
+  const [fog, setFog] = useState<FogSettings>({ ...DEFAULT_FOG });
   const [configs, setConfigs] = useState<EnvironmentConfig[]>(() => getAllEnvironmentConfigs());
   const [workshopPresets, setWorkshopPresets] = useState<WorkshopPreset[]>(() => getAllPresets());
 
@@ -153,6 +156,10 @@ export const Environment: React.FC = () => {
     setGodRays((prev) => ({ ...prev, ...update }));
   }, []);
 
+  const handleUpdateFog = useCallback((update: Partial<FogSettings>) => {
+    setFog((prev) => ({ ...prev, ...update }));
+  }, []);
+
   const handleSaveConfig = useCallback(
     (name: string) => {
       const config: EnvironmentConfig = {
@@ -170,12 +177,13 @@ export const Environment: React.FC = () => {
         weather: { ...weather },
         clouds: { ...clouds },
         godRays: { ...godRays },
+        fog: { ...fog },
         models: placedModels.map((m) => ({ ...m })),
       };
       saveEnvironmentConfig(config);
       setConfigs(getAllEnvironmentConfigs());
     },
-    [boxSize, boxHeight, floor, walls, sky, terrain, water, weather, clouds, godRays, placedModels],
+    [boxSize, boxHeight, floor, walls, sky, terrain, water, weather, clouds, godRays, fog, placedModels],
   );
 
   const handleLoadConfig = useCallback((id: string) => {
@@ -190,6 +198,7 @@ export const Environment: React.FC = () => {
     setWeather({ ...config.weather });
     if (config.clouds) setClouds({ ...config.clouds });
     setGodRays({ ...config.godRays });
+    if (config.fog) setFog({ ...config.fog });
     setSelectedInstanceId(null);
   }, []);
 
@@ -204,7 +213,7 @@ export const Environment: React.FC = () => {
   }, []);
 
   return (
-    <div style={{ display: 'flex', width: '100%', height: '100vh', overflow: 'hidden', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
+    <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden', fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <EnvironmentPanel
         models={placedModels}
         selectedInstanceId={selectedInstanceId}
@@ -218,6 +227,7 @@ export const Environment: React.FC = () => {
         weather={weather}
         clouds={clouds}
         godRays={godRays}
+        fog={fog}
         configs={configs}
         workshopPresets={workshopPresets}
         onAddModel={handleAddModel}
@@ -234,6 +244,7 @@ export const Environment: React.FC = () => {
         onUpdateWeather={handleUpdateWeather}
         onUpdateClouds={handleUpdateClouds}
         onUpdateGodRays={handleUpdateGodRays}
+        onUpdateFog={handleUpdateFog}
         onSaveConfig={handleSaveConfig}
         onLoadConfig={handleLoadConfig}
         onDeleteConfig={handleDeleteConfig}
@@ -254,6 +265,7 @@ export const Environment: React.FC = () => {
         weather={weather}
         clouds={clouds}
         godRays={godRays}
+        fog={fog}
         models={placedModels}
         selectedInstanceId={selectedInstanceId}
         onSelectModel={handleSelectModel}

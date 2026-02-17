@@ -5,13 +5,14 @@ import {
   DEFAULT_WATER,
   DEFAULT_WEATHER,
   DEFAULT_GOD_RAYS,
+  DEFAULT_FOG,
 } from './environmentTypes';
 
 const STORAGE_KEY = 'environment-configs';
 
 function migrateConfig(raw: any): EnvironmentConfig {
   if (!raw.terrain) {
-    return {
+    raw = {
       ...raw,
       version: 2,
       sky: DEFAULT_SKY,
@@ -20,6 +21,10 @@ function migrateConfig(raw: any): EnvironmentConfig {
       weather: DEFAULT_WEATHER,
       godRays: DEFAULT_GOD_RAYS,
     };
+  }
+  if (!raw.fog || raw.fog.type !== undefined) {
+    // Migrate from old linear/exponential fog or missing fog to volumetric
+    raw = { ...raw, fog: DEFAULT_FOG };
   }
   return raw;
 }

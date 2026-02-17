@@ -21,7 +21,8 @@ export const MASK_PATTERNS: MaskPatternDef[] = [
 // ── Global Mask Params ───────────────────────────────────────
 
 export const MASK_GLOBAL_PARAMS: ParamDef[] = [
-  { key: 'cellSize', label: 'Cell Size', type: 'number', default: 0.1, min: 0.01, max: 0.5, step: 0.01 },
+  { key: 'cellSizeX', label: 'Cell X', type: 'number', default: 0.1, min: 0.01, max: 0.5, step: 0.01 },
+  { key: 'cellSizeY', label: 'Cell Y', type: 'number', default: 0.1, min: 0.01, max: 0.5, step: 0.01 },
   { key: 'speed', label: 'Speed', type: 'number', default: 0, min: 0, max: 10, step: 0.1 },
   { key: 'softness', label: 'Softness', type: 'number', default: 0, min: 0, max: 0.1, step: 0.001 },
   { key: 'invertZones', label: 'Invert Zones', type: 'boolean', default: false },
@@ -60,7 +61,9 @@ export interface ZoneConfig {
 export interface MaskConfig {
   enabled: boolean;
   pattern: string;
-  cellSize: number;
+  cellSizeX: number;
+  cellSizeY: number;
+  cellLinked: boolean;
   speed: number;
   softness: number;
   invertZones: boolean;
@@ -89,7 +92,9 @@ export function getDefaultMaskConfig(): MaskConfig {
   return {
     enabled: false,
     pattern: 'checkerboard',
-    cellSize: 0.1,
+    cellSizeX: 0.1,
+    cellSizeY: 0.1,
+    cellLinked: true,
     speed: 0,
     softness: 0,
     invertZones: false,

@@ -45,7 +45,12 @@ import {
   RetroLCDEffect,
   EmbossEffect,
   RippleEffect,
-} from './customEffects';
+  KuwaharaEffect,
+  WatercolorEffect,
+  NagaiEffect,
+  AfterimageEffect,
+  GodRaysEffect,
+} from './custom';
 import { MaskedEffect } from './MaskedEffect';
 import { TrailFeedbackEffect } from './TrailFeedbackEffect';
 import type { MaskConfig } from '../workshop/maskRegistry';
@@ -66,6 +71,81 @@ const GLITCH_MODE_MAP: Record<string, GlitchMode> = {
   CONSTANT_MILD: GlitchMode.CONSTANT_MILD,
   CONSTANT_WILD: GlitchMode.CONSTANT_WILD,
 };
+
+// ── Effect processing order ─────────────────────────────────
+// Effects are sorted into tiers so they compose correctly regardless
+// of the order the user toggles them on. Lower number = earlier in chain.
+//
+//  0  Spatial filters     — blur/simplify raw pixels for best quality
+//  1  Color adjustments   — non-destructive point operations
+//  2  Full replacements   — overwrite color via luminance lookup
+//  3  Quantizers          — reduce color/spatial precision (lossy)
+//  4  UV distortions      — remap pixel sources
+//  5  Overlays            — additive patterns on top
+//  (MaskedEffect and TrailFeedback are appended after all tiers)
+
+const EFFECT_PRIORITY: Record<string, number> = {
+  // 0 — Spatial filters
+  kuwahara: 0,
+  watercolor: 0,
+  nagai: 0,
+  'depth-of-field': 0,
+  'tilt-shift': 0,
+  'tilt-shift-2': 0,
+  bloom: 0,
+  'chromatic-aberration': 0,
+  n8ao: 0,
+
+  // 1 — Color adjustments
+  'brightness-contrast': 1,
+  'hue-shift': 1,
+  sepia: 1,
+  vignette: 1,
+  'tone-mapping': 1,
+  invert: 1,
+
+  // 2 — Full color replacement
+  thermal: 2,
+  duotone: 2,
+  'night-vision': 2,
+  grayscale: 2,
+  depth: 2,
+  'edge-detect': 2,
+  emboss: 2,
+  ascii: 2,
+  hologram: 2,
+
+  // 3 — Destructive quantizers
+  posterize: 3,
+  'color-depth': 3,
+  dither: 3,
+  'retro-lcd': 3,
+  'dot-screen': 3,
+  ramp: 3,
+
+  // 4 — UV distortions
+  crt: 4,
+  kaleidoscope: 4,
+  pixelation: 4,
+  ripple: 4,
+  underwater: 4,
+  vhs: 4,
+  glitch: 4,
+  water: 4,
+
+  // 5 — Overlays
+  scanline: 5,
+  grid: 5,
+  noise: 5,
+
+  // 6 — Temporal (ping-pong feedback / multi-pass, must run after spatial effects)
+  afterimage: 6,
+  'god-rays': 6,
+};
+
+function sortEffects(filters: string[]): string[] {
+  return [...filters].sort((a, b) => (EFFECT_PRIORITY[a] ?? 3) - (EFFECT_PRIORITY[b] ?? 3));
+}
 
 // ── Custom effect factory map ───────────────────────────────
 
@@ -267,8 +347,9 @@ function useCustomEffects(
   allParams: Record<string, Record<string, any>>,
 ): Map<string, any> {
   // Build a stable key from the custom filter IDs + their params so we recreate when params change
+  const PARAMETERIZED_IDS = ['dither', 'posterize', 'duotone', 'kuwahara', 'watercolor', 'nagai', 'afterimage', 'god-rays'];
   const customFilters = filters.filter(
-    (f) => SIMPLE_CUSTOM_EFFECTS[f] || f === 'dither' || f === 'posterize' || f === 'duotone',
+    (f) => SIMPLE_CUSTOM_EFFECTS[f] || PARAMETERIZED_IDS.includes(f),
   );
 
   // Serialize param-dependent values for deps
@@ -301,6 +382,45 @@ function useCustomEffects(
             colorB: hexToRgb01(p.colorB ?? '#e61a99'),
           }),
         );
+        continue;
+      }
+      if (id === 'kuwahara') {
+        map.set(id, new KuwaharaEffect({
+          radius: p.radius ?? 8.0,
+          sharpness: p.sharpness ?? 8.0,
+        }));
+        continue;
+      }
+      if (id === 'watercolor') {
+        map.set(id, new WatercolorEffect({
+          wetness: p.wetness ?? 0.5,
+          edgeInk: p.edgeInk ?? 0.6,
+          paperGrain: p.paperGrain ?? 0.5,
+        }));
+        continue;
+      }
+      if (id === 'nagai') {
+        map.set(id, new NagaiEffect({
+          levels: p.levels ?? 8.0,
+          warmth: p.warmth ?? 0.6,
+          edgeBold: p.edgeBold ?? 0.7,
+          satBoost: p.satBoost ?? 1.4,
+        }));
+        continue;
+      }
+      if (id === 'afterimage') {
+        map.set(id, new AfterimageEffect({ damp: p.damp ?? 0.96 }));
+        continue;
+      }
+      if (id === 'god-rays') {
+        map.set(id, new GodRaysEffect({
+          color: p.color ?? '#ffffaa',
+          sunX: p.sunX ?? 0.5,
+          sunY: p.sunY ?? 0.8,
+          intensity: p.intensity ?? 0.75,
+          density: p.density ?? 1.0,
+          threshold: p.threshold ?? 0.5,
+        }));
         continue;
       }
 
@@ -373,11 +493,29 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     const ld = loopDuration ?? 0;
-    customEffects.forEach((effect) => {
+    customEffects.forEach((effect, id) => {
       const uTime = effect.uniforms?.get('uTime');
       const uLoop = effect.uniforms?.get('uLoopDuration');
       if (uTime) uTime.value = t;
       if (uLoop) uLoop.value = ld;
+
+      // Live-update AfterimageEffect damp from slider
+      if (id === 'afterimage' && effect.setDamp) {
+        const p = allParams['afterimage'];
+        if (p) effect.setDamp(p.damp ?? 0.96);
+      }
+
+      // Live-update GodRaysEffect params from sliders
+      if (id === 'god-rays' && effect.setSunPos) {
+        const p = allParams['god-rays'];
+        if (p) {
+          effect.setSunPos(p.sunX ?? 0.5, p.sunY ?? 0.8);
+          effect.setIntensity(p.intensity ?? 0.75);
+          effect.setDensity(p.density ?? 1.0);
+          effect.setThreshold(p.threshold ?? 0.5);
+          effect.setColor(p.color ?? '#ffffaa');
+        }
+      }
     });
 
     // Pump MaskedEffect uniforms
@@ -388,7 +526,9 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({
       u.get('uTime')!.value = t;
       u.get('uLoopDuration')!.value = ld;
       u.get('uPattern')!.value = MASK_PATTERN_INDEX[mc.pattern] ?? 0;
-      u.get('uCellSize')!.value = mc.cellSize;
+      u.get('uCellSizeX')!.value = mc.cellSizeX ?? 0.1;
+      u.get('uCellSizeY')!.value = mc.cellSizeY ?? 0.1;
+      u.get('uAspect')!.value = state.size.width / Math.max(state.size.height, 1);
       u.get('uSpeed')!.value = mc.speed;
       u.get('uSoftness')!.value = mc.softness;
       u.get('uInvert')!.value = mc.invertZones ? 1 : 0;
@@ -427,8 +567,11 @@ export const VisualEffectPass: React.FC<VisualEffectPassProps> = ({
     }
   });
 
+  // Sort effects into correct processing order
+  const sorted = sortEffects(filters);
+
   const elements: React.ReactNode[] = [];
-  for (const id of filters) {
+  for (const id of sorted) {
     const p = allParams[id] ?? {};
 
     // Try library effect first

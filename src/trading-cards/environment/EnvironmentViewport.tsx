@@ -4,7 +4,7 @@ import { PerspectiveCamera, OrbitControls, Grid } from '@react-three/drei';
 import * as THREE from 'three';
 import { ModelScene } from '../effects/ModelScene';
 import { getWorkshopModel } from '../workshop/modelRegistry';
-import type { PlacedModel, FloorSettings, WallSettings, SkySettings, TerrainSettings, WaterSettings, WeatherSettings, CloudSettings, GodRaysSettings } from './environmentTypes';
+import type { PlacedModel, FloorSettings, WallSettings, SkySettings, TerrainSettings, WaterSettings, WeatherSettings, CloudSettings, GodRaysSettings, FogSettings } from './environmentTypes';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { EnvironmentSky } from './EnvironmentSky';
 import { EnvironmentTerrain } from './EnvironmentTerrain';
@@ -12,6 +12,7 @@ import { EnvironmentWater } from './EnvironmentWater';
 import { EnvironmentWeather } from './EnvironmentWeather';
 import { EnvironmentGodRays } from './EnvironmentGodRays';
 import { EnvironmentClouds } from './EnvironmentClouds';
+import { EnvironmentFog } from './EnvironmentFog';
 
 // ── FPS Meter ───────────────────────────────────────────────
 
@@ -205,6 +206,7 @@ export interface EnvironmentViewportProps {
   weather: WeatherSettings;
   clouds: CloudSettings;
   godRays: GodRaysSettings;
+  fog: FogSettings;
   models: PlacedModel[];
   selectedInstanceId: string | null;
   onSelectModel: (instanceId: string | null) => void;
@@ -221,6 +223,7 @@ export const EnvironmentViewport: React.FC<EnvironmentViewportProps> = ({
   weather,
   clouds,
   godRays,
+  fog,
   models,
   selectedInstanceId,
   onSelectModel,
@@ -252,7 +255,7 @@ export const EnvironmentViewport: React.FC<EnvironmentViewportProps> = ({
     <div
       style={{
         flex: 1,
-        height: '100vh',
+        height: '100%',
         position: 'relative',
         background: sky.enabled ? '#000' : 'linear-gradient(180deg, #0a0a1e 0%, #1a1a3e 100%)',
       }}
@@ -310,6 +313,9 @@ export const EnvironmentViewport: React.FC<EnvironmentViewportProps> = ({
 
         {/* God Rays (additive cones) */}
         <EnvironmentGodRays settings={godRays} boxSize={boxSize} />
+
+        {/* Fog */}
+        <EnvironmentFog settings={fog} boxSize={boxSize} />
 
         {/* Weather (instanced particles) */}
         <EnvironmentWeather settings={weather} boxSize={boxSize} boxHeight={boxHeight} />

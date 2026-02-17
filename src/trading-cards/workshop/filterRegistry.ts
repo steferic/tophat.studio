@@ -328,6 +328,103 @@ export const FILTER_REGISTRY: FilterDef[] = [
   { id: 'retro-lcd', displayName: 'Retro LCD', category: 'custom', params: [] },
   { id: 'emboss', displayName: 'Emboss', category: 'custom', params: [] },
   { id: 'ripple', displayName: 'Ripple', category: 'custom', params: [] },
+
+  // ── Temporal effects ─────────────────────────────────────
+  {
+    id: 'afterimage',
+    displayName: 'Afterimage',
+    category: 'custom',
+    params: [
+      { key: 'damp', label: 'Persistence', type: 'number', default: 0.96, min: 0, max: 1, step: 0.001 },
+    ],
+  },
+
+  // ── Volumetric effects ─────────────────────────────────────
+  {
+    id: 'god-rays',
+    displayName: 'God Rays',
+    category: 'custom',
+    params: [
+      { key: 'color', label: 'Color', type: 'color', default: '#ffffaa' },
+      { key: 'sunX', label: 'Sun X', type: 'number', default: 0.5, min: 0, max: 1, step: 0.01 },
+      { key: 'sunY', label: 'Sun Y', type: 'number', default: 0.8, min: 0, max: 1, step: 0.01 },
+      { key: 'intensity', label: 'Intensity', type: 'number', default: 0.75, min: 0, max: 2, step: 0.05 },
+      { key: 'density', label: 'Density', type: 'number', default: 1.0, min: 0.1, max: 3, step: 0.1 },
+      { key: 'threshold', label: 'Threshold', type: 'number', default: 0.5, min: 0, max: 1, step: 0.05 },
+    ],
+  },
+
+  // ── Style transfer effects ────────────────────────────────
+  {
+    id: 'kuwahara',
+    displayName: 'Oil Painting',
+    category: 'custom',
+    params: [
+      { key: 'radius', label: 'Brush Size', type: 'number', default: 8.0, min: 2, max: 10, step: 1 },
+      { key: 'sharpness', label: 'Sharpness', type: 'number', default: 8.0, min: 1, max: 20, step: 1 },
+    ],
+  },
+  {
+    id: 'watercolor',
+    displayName: 'Watercolor',
+    category: 'custom',
+    params: [
+      { key: 'wetness', label: 'Wetness', type: 'number', default: 0.5, min: 0, max: 1, step: 0.05 },
+      { key: 'edgeInk', label: 'Edge Ink', type: 'number', default: 0.6, min: 0, max: 1, step: 0.05 },
+      { key: 'paperGrain', label: 'Paper Grain', type: 'number', default: 0.5, min: 0, max: 1, step: 0.05 },
+    ],
+  },
+  {
+    id: 'nagai',
+    displayName: 'Nagai Pop',
+    category: 'custom',
+    params: [
+      { key: 'levels', label: 'Color Levels', type: 'number', default: 8.0, min: 3, max: 16, step: 1 },
+      { key: 'warmth', label: 'Warmth', type: 'number', default: 0.6, min: 0, max: 1, step: 0.05 },
+      { key: 'edgeBold', label: 'Edge Bold', type: 'number', default: 0.7, min: 0, max: 1, step: 0.05 },
+      { key: 'satBoost', label: 'Saturation', type: 'number', default: 1.4, min: 0.5, max: 2.5, step: 0.1 },
+    ],
+  },
+];
+
+// ── Tier groups (processing order) ──────────────────────────
+// Matches the EFFECT_PRIORITY tiers in VisualEffectPass.tsx.
+// Used by the UI to visually separate filters into categories.
+
+export interface FilterTier {
+  label: string;
+  ids: string[];
+}
+
+export const FILTER_TIERS: FilterTier[] = [
+  {
+    label: 'Spatial Filters',
+    ids: ['kuwahara', 'watercolor', 'nagai', 'depth-of-field', 'tilt-shift', 'tilt-shift-2', 'bloom', 'chromatic-aberration', 'n8ao'],
+  },
+  {
+    label: 'Color Adjustments',
+    ids: ['brightness-contrast', 'hue-shift', 'sepia', 'vignette', 'tone-mapping', 'invert', 'blue-tint'],
+  },
+  {
+    label: 'Style Transfer',
+    ids: ['thermal', 'duotone', 'night-vision', 'grayscale', 'depth', 'edge-detect', 'emboss', 'ascii', 'hologram'],
+  },
+  {
+    label: 'Quantizers',
+    ids: ['posterize', 'color-depth', 'dither', 'retro-lcd', 'dot-screen', 'ramp'],
+  },
+  {
+    label: 'Distortions',
+    ids: ['crt', 'kaleidoscope', 'pixelation', 'ripple', 'underwater', 'vhs', 'glitch', 'water'],
+  },
+  {
+    label: 'Overlays',
+    ids: ['scanline', 'grid', 'noise'],
+  },
+  {
+    label: 'Temporal',
+    ids: ['afterimage', 'god-rays'],
+  },
 ];
 
 // ── Helpers ─────────────────────────────────────────────────

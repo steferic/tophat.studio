@@ -26,17 +26,21 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div style={{ position: 'relative' }}>
-      {/* Tab selector */}
-      <div
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* Navbar */}
+      <nav
         style={{
-          position: 'fixed',
-          top: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 100,
+          height: 48,
+          flexShrink: 0,
           display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
           gap: 8,
+          background: 'rgba(10,10,20,0.95)',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          zIndex: 100,
+          padding: '0 16px',
+          backdropFilter: 'blur(12px)',
         }}
       >
         {allTabs.map(({ id, label }) => (
@@ -52,27 +56,29 @@ const App: React.FC = () => {
               fontWeight: 600,
               background: active === id ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.15)',
               color: active === id ? '#1a1a2e' : 'rgba(255,255,255,0.7)',
-              backdropFilter: 'blur(8px)',
               transition: 'all 0.2s',
             }}
           >
             {label}
           </button>
         ))}
-      </div>
+      </nav>
 
-      {active === 'Battle Arena' && <Arena />}
-      {active === 'Mandelbrot' && <MandelbrotCard />}
-      {active === 'Sortimus' && <SortingCard />}
-      {active === 'Sparkitty' && <SparkittyCard />}
-      {active === 'Workshop' && <Workshop />}
-      {active === 'Environment' && <Environment />}
-      {/* Card definition tabs rendered generically */}
-      {cardEntries.map((entry) =>
-        active === entry.definition.id ? (
-          <StandaloneCard key={entry.definition.id} cardId={entry.definition.id} />
-        ) : null,
-      )}
+      {/* Content area */}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        {active === 'Battle Arena' && <Arena />}
+        {active === 'Mandelbrot' && <MandelbrotCard />}
+        {active === 'Sortimus' && <SortingCard />}
+        {active === 'Sparkitty' && <SparkittyCard />}
+        {active === 'Workshop' && <Workshop />}
+        {active === 'Environment' && <Environment />}
+        {/* Card definition tabs rendered generically */}
+        {cardEntries.map((entry) =>
+          active === entry.definition.id ? (
+            <StandaloneCard key={entry.definition.id} cardId={entry.definition.id} />
+          ) : null,
+        )}
+      </div>
     </div>
   );
 };

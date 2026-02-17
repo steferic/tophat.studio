@@ -15,6 +15,7 @@ import type {
   WeatherType,
   CloudSettings,
   GodRaysSettings,
+  FogSettings,
   EnvironmentConfig,
 } from './environmentTypes';
 import { TERRAIN_DEFAULT_COLORS } from './environmentTypes';
@@ -135,6 +136,7 @@ export interface EnvironmentPanelProps {
   weather: WeatherSettings;
   clouds: CloudSettings;
   godRays: GodRaysSettings;
+  fog: FogSettings;
   configs: EnvironmentConfig[];
   workshopPresets: WorkshopPreset[];
   onAddModel: (modelId: string) => void;
@@ -151,6 +153,7 @@ export interface EnvironmentPanelProps {
   onUpdateWeather: (update: Partial<WeatherSettings>) => void;
   onUpdateClouds: (update: Partial<CloudSettings>) => void;
   onUpdateGodRays: (update: Partial<GodRaysSettings>) => void;
+  onUpdateFog: (update: Partial<FogSettings>) => void;
   onSaveConfig: (name: string) => void;
   onLoadConfig: (id: string) => void;
   onDeleteConfig: (id: string) => void;
@@ -170,6 +173,7 @@ export const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({
   weather,
   clouds,
   godRays,
+  fog,
   configs,
   workshopPresets,
   onAddModel,
@@ -186,6 +190,7 @@ export const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({
   onUpdateWeather,
   onUpdateClouds,
   onUpdateGodRays,
+  onUpdateFog,
   onSaveConfig,
   onLoadConfig,
   onDeleteConfig,
@@ -212,7 +217,7 @@ export const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({
         style={{
           position: 'fixed',
           left: 0,
-          top: 0,
+          top: 48,
           bottom: 0,
           width: 36,
           zIndex: 50,
@@ -246,7 +251,7 @@ export const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({
       style={{
         position: 'fixed',
         left: 0,
-        top: 0,
+        top: 48,
         bottom: 0,
         width: 320,
         zIndex: 50,
@@ -254,7 +259,7 @@ export const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({
         backdropFilter: 'blur(12px)',
         borderRight: '1px solid rgba(255,255,255,0.08)',
         overflowY: 'auto',
-        padding: '60px 16px 16px',
+        padding: '16px',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -971,7 +976,101 @@ export const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({
         )}
       </Section>
 
-      {/* 12. Configs */}
+      {/* 13. Fog */}
+      <Section title="Fog">
+        <button
+          onClick={() => onUpdateFog({ enabled: !fog.enabled })}
+          style={fog.enabled ? chipOn : chipOff}
+        >
+          {fog.enabled ? 'Enabled' : 'Disabled'}
+        </button>
+        {fog.enabled && (
+          <>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Color</label>
+              <input
+                type="color"
+                value={fog.color}
+                onChange={(e) => onUpdateFog({ color: e.target.value })}
+                style={{ width: 32, height: 24, padding: 0, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 4, background: 'none', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>{fog.color}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Dens</label>
+              <input
+                type="range" min={0.05} max={2.0} step={0.05}
+                value={fog.density}
+                onChange={(e) => onUpdateFog({ density: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.density.toFixed(2)}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Height</label>
+              <input
+                type="range" min={5} max={boxHeight} step={1}
+                value={fog.height}
+                onChange={(e) => onUpdateFog({ height: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.height}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Falloff</label>
+              <input
+                type="range" min={0.01} max={0.3} step={0.005}
+                value={fog.heightFalloff}
+                onChange={(e) => onUpdateFog({ heightFalloff: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.heightFalloff.toFixed(3)}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Wind</label>
+              <input
+                type="range" min={0} max={5} step={0.1}
+                value={fog.windSpeed}
+                onChange={(e) => onUpdateFog({ windSpeed: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.windSpeed.toFixed(1)}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Turb</label>
+              <input
+                type="range" min={0} max={2} step={0.05}
+                value={fog.turbulence}
+                onChange={(e) => onUpdateFog({ turbulence: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.turbulence.toFixed(2)}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Scale</label>
+              <input
+                type="range" min={0.2} max={4.0} step={0.1}
+                value={fog.scale}
+                onChange={(e) => onUpdateFog({ scale: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.scale.toFixed(1)}</span>
+            </div>
+            <div style={sliderRowStyle}>
+              <label style={labelStyle}>Opac</label>
+              <input
+                type="range" min={0.1} max={1.0} step={0.05}
+                value={fog.opacity}
+                onChange={(e) => onUpdateFog({ opacity: Number(e.target.value) })}
+                style={{ flex: 1 }}
+              />
+              <span style={monoValue}>{fog.opacity.toFixed(2)}</span>
+            </div>
+          </>
+        )}
+      </Section>
+
+      {/* 14. Configs */}
       <Section title="Configs" count={configs.length}>
         <div style={{ display: 'flex', gap: 6, width: '100%' }}>
           <input
